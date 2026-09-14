@@ -1,0 +1,494 @@
+/* 1. FONTS */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* 2. DESIGN TOKENS */
+:root {
+  --bg-main: #0b0e14;
+  --bg-surface: #141822;
+  --bg-surface-hover: #1c2230;
+  --bg-card: #181c27;
+  --border-color: #232836;
+  --border-focus: #2962ff;
+  --text-primary: #e0e6ed;
+  --text-secondary: #788296;
+  --text-muted: #4a5468;
+  --accent-blue: #2962ff;
+  --accent-blue-hover: #1e52e0;
+  --color-win: #00e676;
+  --color-win-bg: rgba(0, 230, 118, 0.1);
+  --color-loss: #ff5252;
+  --color-loss-bg: rgba(255, 82, 82, 0.1);
+  --color-buy: #0088cc;
+  --color-sell: #e53935;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --sidebar-width: 250px;
+}
+
+/* 3. GLOBAL RESET */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* 4. CUSTOM SCROLLBAR */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-main); }
+::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3a445a; }
+
+/* 5. UTILITY CLASSES */
+.number-font {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.ts-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.ts-card:hover {
+  border-color: #2e3648;
+}
+
+/* 6. BUTTONS */
+.ts-btn {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.ts-btn-primary { background-color: var(--accent-blue); color: #fff; }
+.ts-btn-primary:hover { background-color: var(--accent-blue-hover); box-shadow: 0 4px 12px rgba(41, 98, 255, 0.3); }
+.ts-btn-success { background-color: #10b981; color: #fff; }
+.ts-btn-success:hover { background-color: #059669; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+.ts-btn-danger { background-color: #ef4444; color: #fff; }
+.ts-btn-danger:hover { background-color: #dc2626; }
+.ts-btn-ghost { background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); }
+.ts-btn-ghost:hover { background-color: var(--bg-surface-hover); border-color: #323b4e; }
+
+/* 7. INPUTS */
+.ts-input {
+  width: 100%;
+  padding: 10px 14px;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.ts-input:focus {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.15);
+}
+
+/* 8. TABLES */
+.ts-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.ts-table th {
+  background-color: #121620;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+.ts-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.ts-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+.ts-table tbody tr:hover {
+  background-color: var(--bg-surface-hover);
+}
+
+/* 9. BADGES */
+.badge-buy {
+  background-color: rgba(0, 136, 204, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+.badge-sell {
+  background-color: rgba(229, 57, 53, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* 10. HAMBURGER BUTTON (Mobile) */
+.hamburger-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 1100;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: #fff;
+  padding: 10px 12px;
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1049;
+}
+
+/* 11. RESPONSIVE BREAKPOINTS */
+
+/* Tablet: ≤ 1024px */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 220px;
+  }
+
+  .hamburger-btn {
+    display: block;
+  }
+
+  .sidebar-overlay.visible {
+    display: block;
+  }
+
+  aside.ts-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 1050;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+
+  aside.ts-sidebar.open {
+    transform: translateX(0);
+  }
+
+  main.ts-main {
+    padding-left: 24px !important;
+    padding-right: 24px !important;
+    padding-top: 64px !important;
+  }
+
+  .metric-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+  }
+
+  .analytics-grid-2col {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .playbook-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .edge-table-wrapper {
+    font-size: 12px;
+  }
+
+  .journal-btn-group {
+    flex-wrap: wrap;
+  }
+}
+
+/* Mobile: ≤ 768px */
+@media (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+
+  main.ts-main {
+    padding: 56px 12px 24px 12px !important;
+  }
+
+  .ts-card {
+    padding: 14px;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+
+  .stat-single {
+    grid-column: span 2;
+  }
+
+  .filter-bar {
+    flex-direction: column !important;
+  }
+
+  .filter-bar .ts-input,
+  .filter-bar select {
+    width: 100% !important;
+    min-width: auto !important;
+  }
+
+  .header-bar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  .header-bar .journal-btn-group {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .ts-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  /* Modal becomes full screen on mobile */
+  .modal-mobile {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100vh;
+    max-height: 100vh;
+    border-radius: 0 !important;
+    padding: 16px !important;
+    overflow-y: auto;
+  }
+
+  .modal-mobile-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Calendar grid shrink */
+  .calendar-day {
+    min-height: 52px !important;
+    padding: 4px !important;
+    font-size: 11px;
+  }
+
+  .calendar-header {
+    gap: 4px !important;
+  }
+
+  /* Table scroll hint */
+  .table-scroll-hint {
+    display: block;
+  }
+
+  /* Period filter buttons */
+  .period-filters {
+    gap: 4px !important;
+  }
+
+  .period-filters .ts-btn {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  /* Playbook cards stack */
+  .playbook-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Emotion tags */
+  .emotion-grid {
+    gap: 4px !important;
+  }
+
+  .emotion-grid .ts-btn {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+
+  /* Section titles */
+  .section-title-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+
+  /* Risk cards stack */
+  .risk-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Weekly table */
+  .weekly-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Chart heights */
+  .chart-container {
+    height: 220px !important;
+  }
+
+  .chart-container-lg {
+    height: 260px !important;
+  }
+
+  /* Sidebar badge in footer */
+  .sidebar-footer {
+    display: none;
+  }
+}
+
+/* Small Mobile: ≤ 480px */
+@media (max-width: 480px) {
+  main.ts-main {
+    padding: 56px 10px 20px 10px !important;
+  }
+
+  .metric-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .stat-single {
+    grid-column: span 1;
+  }
+
+  .ts-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .hamburger-btn {
+    top: 12px;
+    left: 12px;
+    padding: 8px 10px;
+    font-size: 18px;
+  }
+
+  .ts-table {
+    font-size: 12px;
+  }
+
+  .ts-table th {
+    padding: 10px 12px;
+    font-size: 10px;
+  }
+
+  .ts-table td {
+    padding: 10px 12px;
+  }
+}
+
+/* COLLAPSED SIDEBAR */
+aside.ts-sidebar {
+  width: var(--sidebar-width);
+}
+
+aside.ts-sidebar.collapsed {
+  width: 68px;
+}
+
+aside.ts-sidebar.collapsed .sidebar-logo {
+  justify-content: center;
+}
+
+.collapse-toggle {
+  display: block;
+  width: 100%;
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 14px;
+  transition: all 0.15s ease;
+}
+
+.collapse-toggle:hover {
+  background: var(--bg-surface-hover);
+  color: #fff;
+}
+
+@media (max-width: 1024px) {
+  .collapse-toggle { display: none; }
+  aside.ts-sidebar.collapsed { width: var(--sidebar-width); }
+  aside.ts-sidebar.collapsed .sidebar-logo { justify-content: flex-start; }
+}
+
+/* TABLE COLUMN ALIGNMENT FIX */
+.ts-table th,
+.ts-table td {
+  text-align: left;
+  vertical-align: middle;
+}
+
+.ts-table th.num,
+.ts-table td.num {
+  text-align: right;
+}
+
+.ts-table th.center,
+.ts-table td.center {
+  text-align: center;
+}
+
+.ts-table tbody td .number-font {
+  display: inline-block;
+}
