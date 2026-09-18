@@ -3,6 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from 'recharts';
+import { toDate, formatDateShort, sortTradesByDate } from '../utils/dateUtils';
 
 const PERIODS = [
   { id: 'today', label: 'Today' },
@@ -16,15 +17,12 @@ const PERIODS = [
 
 const CUR = { USD: '$', EUR: '€', GBP: '£', NGN: '₦' };
 
-function parseTradeDate(str) {
-  if (!str) return null;
-  const cleaned = String(str).replace(/\./g, '-').split(' ')[0];
-  const d = new Date(cleaned);
-  return isNaN(d) ? null : d;
+function getTradeDate(t) {
+  return toDate(t.openAt || t.openTime || t.date);
 }
 
-function ymd(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+function getTradePnL(t) {
+  return Number(t.pnl ?? t.profit) || 0;
 }
 
 function filterByPeriod(trades, period) {
@@ -32,14 +30,16 @@ function filterByPeriod(trades, period) {
   const now = new Date();
   now.setHours(23, 59, 59, 999);
   let start = new Date(now);
+
   if (period === 'today') start.setHours(0, 0, 0, 0);
   else if (period === '7d') { start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); }
   else if (period === '30d') { start.setDate(start.getDate() - 29); start.setHours(0, 0, 0, 0); }
   else if (period === '60d') { start.setDate(start.getDate() - 59); start.setHours(0, 0, 0, 0); }
   else if (period === '90d') { start.setDate(start.getDate() - 89); start.setHours(0, 0, 0, 0); }
   else if (period === 'month') start = new Date(now.getFullYear(), now.getMonth(), 1);
+
   return trades.filter((t) => {
-    const d = parseTradeDate(t.openTime);
+    const d = getTradeDate(t);
     return d && d >= start && d <= now;
   });
 }
@@ -65,11 +65,11 @@ export default function Dashboard({ trades = [], settings }) {
   const dailyMap = useMemo(() => {
     const m = {};
     for (const t of trades) {
-      const d = parseTradeDate(t.openTime);
+      const d = getTradeDate(t);
       if (!d) continue;
-      const key = ymd(d);
+      const key = formatDateShort(d);
       if (!m[key]) m[key] = { pnl: 0, count: 0, wins: 0, losses: 0 };
-      const p = Number(t.profit) || 0;
+      const p = getTradePnL(t);
       m[key].pnl += p;
       m[key].count += 1;
       if (p > 0) m[key].wins += 1;
@@ -79,18 +79,18 @@ export default function Dashboard({ trades = [], settings }) {
   }, [trades]);
 
   const equityData = useMemo(() => {
-    const sorted = [...scopedTrades].sort((a, b) => {
-      const da = parseTradeDate(a.openTime), db = parseTradeDate(b.openTime);
-      return (da?.getTime() || 0) - (db?.getTime() || 0);
-    });
+    // Sort trades chronologically (oldest first) for equity accumulation
+    const sorted = sortTradesByDate(scopedTrades, false);
     let equity = Number(cfg.startingBalance) || 10000;
     let peak = equity;
     const rows = [];
     for (const t of sorted) {
-      equity += Number(t.profit) || 0;
+      const p = getTradePnL(t);
+      const d = getTradeDate(t);
+      equity += p;
       if (equity > peak) peak = equity;
       rows.push({
-        date: (t.openTime || '').split(' ')[0],
+        date: d ? formatDateShort(d) : 'N/A',
         equity: Number(equity.toFixed(2)),
         drawdown: Number((peak - equity).toFixed(2)),
       });
@@ -111,7 +111,7 @@ export default function Dashboard({ trades = [], settings }) {
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>🏠 Command Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
-            Showing <strong style={{ color: 'var(--text-primary)' }}>{PERIODS.find((p) => p.id === period).label}</strong> · {scopedTrades.length} trades in scope
+            Showing <strong style={{ color: 'var(--text-primary)' }}>{PERIODS.find((p) => p.id === period)?.label}</strong> · {scopedTrades.length} trades in scope
           </p>
         </div>
         <div className="period-filters" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -287,10 +287,10 @@ export default function Dashboard({ trades = [], settings }) {
 
 function computeStats(trades) {
   const totalTrades = trades.length;
-  const wins = trades.filter((t) => Number(t.profit) > 0);
-  const losses = trades.filter((t) => Number(t.profit) < 0);
-  const grossProfit = wins.reduce((s, t) => s + Number(t.profit), 0);
-  const grossLoss = Math.abs(losses.reduce((s, t) => s + Number(t.profit), 0));
+  const wins = trades.filter((t) => getTradePnL(t) > 0);
+  const losses = trades.filter((t) => getTradePnL(t) < 0);
+  const grossProfit = wins.reduce((s, t) => s + getTradePnL(t), 0);
+  const grossLoss = Math.abs(losses.reduce((s, t) => s + getTradePnL(t), 0));
   const netPnL = grossProfit - grossLoss;
 
   const winRate = totalTrades ? ((wins.length / totalTrades) * 100).toFixed(1) : '0.0';
@@ -300,17 +300,14 @@ function computeStats(trades) {
   const profitFactor = grossLoss > 0 ? (grossProfit / grossLoss).toFixed(2) : grossProfit > 0 ? '∞' : '0.00';
   const avgRR = avgLoss > 0 ? (avgWin / avgLoss).toFixed(2) : '—';
 
-  const profitsArr = trades.map((t) => Number(t.profit));
+  const profitsArr = trades.map((t) => getTradePnL(t));
   const bestTrade = totalTrades ? Math.max(...profitsArr) : 0;
   const worstTrade = totalTrades ? Math.min(...profitsArr) : 0;
 
-  const chrono = [...trades].sort((a, b) => {
-    const da = parseTradeDate(a.openTime), db = parseTradeDate(b.openTime);
-    return (da?.getTime() || 0) - (db?.getTime() || 0);
-  });
+  const chrono = sortTradesByDate(trades, false);
   let longestWin = 0, longestLoss = 0, curW = 0, curL = 0;
   for (const t of chrono) {
-    const p = Number(t.profit) || 0;
+    const p = getTradePnL(t);
     if (p > 0) { curW += 1; curL = 0; longestWin = Math.max(longestWin, curW); }
     else if (p < 0) { curL += 1; curW = 0; longestLoss = Math.max(longestLoss, curL); }
   }
@@ -318,11 +315,11 @@ function computeStats(trades) {
   const daysSet = new Set();
   const dayPnL = {};
   for (const t of trades) {
-    const d = parseTradeDate(t.openTime);
+    const d = getTradeDate(t);
     if (!d) continue;
-    const key = ymd(d);
+    const key = formatDateShort(d);
     daysSet.add(key);
-    dayPnL[key] = (dayPnL[key] || 0) + (Number(t.profit) || 0);
+    dayPnL[key] = (dayPnL[key] || 0) + getTradePnL(t);
   }
   const tradingDays = daysSet.size;
   const winDays = Object.values(dayPnL).filter((v) => v > 0).length;
@@ -340,22 +337,22 @@ function computeStats(trades) {
 function buildWeeklySummary(trades) {
   const weeks = {};
   for (const t of trades) {
-    const d = parseTradeDate(t.openTime);
+    const d = getTradeDate(t);
     if (!d) continue;
     const weekStart = new Date(d);
     weekStart.setDate(d.getDate() - d.getDay());
     weekStart.setHours(0, 0, 0, 0);
-    const key = ymd(weekStart);
+    const key = formatDateShort(weekStart);
     if (!weeks[key]) weeks[key] = { week: key, pnl: 0, trades: 0, wins: 0, days: {} };
-    const p = Number(t.profit) || 0;
+    const p = getTradePnL(t);
     weeks[key].pnl += p; weeks[key].trades += 1;
     if (p > 0) weeks[key].wins += 1;
-    const dk = ymd(d);
+    const dk = formatDateShort(d);
     weeks[key].days[dk] = (weeks[key].days[dk] || 0) + p;
   }
   return Object.values(weeks)
-    .sort((a, b) => a.week.localeCompare(b.week))
-    .map((w) => {
+  .sort((a, b) => b.week.localeCompare(a.week)) // newest week first
+  .map((w) => {
       const dayVals = Object.values(w.days);
       return {
         week: w.week,

@@ -72,10 +72,10 @@ export default function Feedback() {
         Found a bug? Have a request? Send us a message — it lands straight in our inbox.
       </p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 520px) 1fr', gap: '24px', alignItems: 'start' }}>
+      <div className="support-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 520px) 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Contact Form */}
         <form onSubmit={handleSubmit} style={cardStyle}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div className="support-name-email-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={labelStyle}>Your Name</label>
               <input type="text" value={form.name} onChange={(e) => handleChange('name', e.target.value)} style={inputStyle} placeholder="John" required />
