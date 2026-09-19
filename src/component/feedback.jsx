@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { STORAGE_KEYS } from '../utils/storageKeys.js';
 
 // 👉 Your live Formspree endpoint
 const FORMSPREE_URL = 'https://formspree.io/f/mnpqgjnd';
@@ -24,12 +25,12 @@ export default function Feedback() {
 
   // Local copy of what this user has sent so they can track their tickets
   const [myTickets, setMyTickets] = useState(() => {
-    const saved = localStorage.getItem('tradersstack_my_tickets');
+    const saved = localStorage.getItem(STORAGE_KEYS.myTickets);
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('tradersstack_my_tickets', JSON.stringify(myTickets));
+    localStorage.setItem(STORAGE_KEYS.myTickets, JSON.stringify(myTickets));
   }, [myTickets]);
 
   const handleChange = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -41,7 +42,7 @@ export default function Feedback() {
     setStatus('sending');
 
     const ticket = {
-      id: 'TS-' + Date.now().toString().slice(-6),
+      id: 'PL-' + Date.now().toString().slice(-6),
       date: new Date().toLocaleString(),
       ...form,
     };

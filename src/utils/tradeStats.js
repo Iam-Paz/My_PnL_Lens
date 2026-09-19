@@ -1,5 +1,5 @@
 /**
- * Utility functions for PazPnL Trade Analytics
+* Utility functions for My_PnL_Lens Trade Analytics
  */
 
 export function parseTimestamp(str) {

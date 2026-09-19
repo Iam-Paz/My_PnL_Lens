@@ -6,6 +6,11 @@ import Playbooks from './component/playbooks.jsx';
 import Feedback from './component/feedback.jsx';
 import Settings from './component/settings.jsx';
 import Imports from './component/import.jsx';
+import { STORAGE_KEYS, migrateLegacyKeys, clearAllAppStorage } from './utils/storageKeys.js';
+
+// Moves any pre-rebrand 'tradersstack_*' data to the new keys.
+// Must run here (module level) BEFORE the useState initializers below read localStorage.
+migrateLegacyKeys();
 
 const DEFAULT_PLAYBOOKS = [
   { id: 'pb-1', title: 'Breakout', timeframe: '15m', riskPercent: '1%', description: 'Surge past key support or resistance', rules: ['Retest level', 'Volume spike'] },
@@ -70,25 +75,25 @@ function makeAccount(name, trades = []) {
 export default function App() {
   // Default page
   const [defaultPage, setDefaultPageState] = useState(() => {
-    return getSafeDefaultPage(localStorage.getItem('tradersstack_default_page'));
+    return getSafeDefaultPage(localStorage.getItem(STORAGE_KEYS.defaultPage));
   });
   const [activeTab, setActiveTab] = useState(() => defaultPage);
 
   const setDefaultPage = (page) => {
     const safe = getSafeDefaultPage(page);
     setDefaultPageState(safe);
-    localStorage.setItem('tradersstack_default_page', safe);
+    localStorage.setItem(STORAGE_KEYS.defaultPage, safe);
   };
 
   // Display name
   const [displayName, setDisplayNameState] = useState(() => {
-    return normalizeDisplayName(localStorage.getItem('tradersstack_display_name') || FALLBACK_DISPLAY_NAME);
+    return normalizeDisplayName(localStorage.getItem(STORAGE_KEYS.displayName) || FALLBACK_DISPLAY_NAME);
   });
 
   const setDisplayName = (raw) => {
     const safe = normalizeDisplayName(raw);
     setDisplayNameState(safe);
-    localStorage.setItem('tradersstack_display_name', safe);
+    localStorage.setItem(STORAGE_KEYS.displayName, safe);
   };
 
   const appName = getAppName(displayName);
@@ -101,11 +106,11 @@ export default function App() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    return localStorage.getItem('tradersstack_sidebar_collapsed') === 'true';
+    return localStorage.getItem(STORAGE_KEYS.sidebarCollapsed) === 'true';
   });
 
   const [accounts, setAccounts] = useState(() => {
-    const saved = localStorage.getItem('tradersstack_accounts');
+    const saved = localStorage.getItem(STORAGE_KEYS.accounts);
     if (saved) {
       const parsed = JSON.parse(saved);
       return parsed.map((a) => ({
@@ -114,14 +119,14 @@ export default function App() {
         trades: a.trades || [],
       }));
     }
-    const oldTrades = localStorage.getItem('tradersstack_trades');
-    const oldSettings = localStorage.getItem('tradersstack_settings');
+    const oldTrades = localStorage.getItem(STORAGE_KEYS.legacyTrades);
+    const oldSettings = localStorage.getItem(STORAGE_KEYS.legacySettings);
     let settings = { ...DEFAULT_SETTINGS };
-    try { if (oldSettings) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(oldSettings) }; } catch (err) { console.warn('Failed to parse legacy tradersstack_settings from localStorage, falling back to defaults:', err); }
+    try { if (oldSettings) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(oldSettings) }; } catch (err) { console.warn('Failed to parse legacy mypnllens_settings from localStorage, falling back to defaults:', err); }
     return [{ id: 'acc-' + Date.now(), name: 'Main Account', createdAt: new Date().toISOString(), trades: oldTrades ? JSON.parse(oldTrades) : [], settings }];
   });
 
-  const [activeAccountId, setActiveAccountId] = useState(() => localStorage.getItem('tradersstack_active_account') || null);
+  const [activeAccountId, setActiveAccountId] = useState(() => localStorage.getItem(STORAGE_KEYS.activeAccount) || null);
 
   useEffect(() => { if (!activeAccountId && accounts.length > 0) setActiveAccountId(accounts[0].id); }, [accounts, activeAccountId]);
 
@@ -137,11 +142,11 @@ export default function App() {
   };
 
   const [playbooks, setPlaybooks] = useState(() => {
-    const saved = localStorage.getItem('tradersstack_playbooks');
+    const saved = localStorage.getItem(STORAGE_KEYS.playbooks);
     return saved ? JSON.parse(saved) : DEFAULT_PLAYBOOKS;
   });
   const [activityLog, setActivityLog] = useState(() => {
-    const saved = localStorage.getItem('tradersstack_activity_log');
+    const saved = localStorage.getItem(STORAGE_KEYS.activityLog);
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -151,11 +156,11 @@ export default function App() {
   };
   const clearActivityLog = () => { if (confirm('Clear all import/export history?')) setActivityLog([]); };
 
-  useEffect(() => { try { localStorage.setItem('tradersstack_accounts', JSON.stringify(accounts)); } catch (e) { console.warn('Storage quota exceeded.', e); } }, [accounts]);
-  useEffect(() => { if (activeAccountId) localStorage.setItem('tradersstack_active_account', activeAccountId); }, [activeAccountId]);
-  useEffect(() => { localStorage.setItem('tradersstack_playbooks', JSON.stringify(playbooks)); }, [playbooks]);
-  useEffect(() => { localStorage.setItem('tradersstack_activity_log', JSON.stringify(activityLog)); }, [activityLog]);
-  useEffect(() => { localStorage.setItem('tradersstack_sidebar_collapsed', String(sidebarCollapsed)); }, [sidebarCollapsed]);
+  useEffect(() => { try { localStorage.setItem(STORAGE_KEYS.accounts, JSON.stringify(accounts)); } catch (e) { console.warn('Storage quota exceeded.', e); } }, [accounts]);
+  useEffect(() => { if (activeAccountId) localStorage.setItem(STORAGE_KEYS.activeAccount, activeAccountId); }, [activeAccountId]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.playbooks, JSON.stringify(playbooks)); }, [playbooks]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.activityLog, JSON.stringify(activityLog)); }, [activityLog]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, String(sidebarCollapsed)); }, [sidebarCollapsed]);
 
   const addAccount = (name) => { if (!name?.trim()) return; const newAcc = makeAccount(name.trim()); setAccounts([...accounts, newAcc]); setActiveAccountId(newAcc.id); };
   const renameAccount = (id, newName) => { if (!newName?.trim()) return; setAccounts(accounts.map((a) => (a.id === id ? { ...a, name: newName.trim() } : a))); };
@@ -171,14 +176,7 @@ export default function App() {
     if (!confirm('⚠️ Wipe EVERYTHING? All accounts, trades, settings, playbooks, and import history?')) return;
     if (!confirm('This is permanent. Are you absolutely sure?')) return;
     const fresh = makeAccount('Main Account'); setAccounts([fresh]); setActiveAccountId(fresh.id); setPlaybooks(DEFAULT_PLAYBOOKS); setActivityLog([]);
-    localStorage.removeItem('tradersstack_trades');
-    localStorage.removeItem('tradersstack_settings');
-    localStorage.removeItem('tradersstack_accounts');
-    localStorage.removeItem('tradersstack_active_account');
-    localStorage.removeItem('tradersstack_playbooks');
-    localStorage.removeItem('tradersstack_activity_log');
-    localStorage.removeItem('tradersstack_default_page');
-    localStorage.removeItem('tradersstack_display_name');
+    clearAllAppStorage();
     setDisplayNameState(FALLBACK_DISPLAY_NAME);
     alert('All data cleared. Fresh start created.');
   };
