@@ -26,6 +26,7 @@ const DEFAULT_SETTINGS = {
   startingBalance: 10000,
   riskPerTrade: 1,
   maxDrawdownPercent: 10,
+  maxDailyDrawdownPercent: 3,
   brokerUtcOffset: 2,
 };
 

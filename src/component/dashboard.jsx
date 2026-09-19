@@ -49,6 +49,7 @@ export default function Dashboard({ trades = [], settings }) {
     startingBalance: 10000,
     riskPerTrade: 1,
     maxDrawdownPercent: 10,
+    maxDailyDrawdownPercent: 3,
     currency: 'USD',
   };
   const sym = CUR[cfg.currency] || '$';
@@ -103,6 +104,19 @@ export default function Dashboard({ trades = [], settings }) {
   const maxDrawdownLimit = (Number(cfg.startingBalance) || 10000) * ((Number(cfg.maxDrawdownPercent) || 10) / 100);
   const drawdownUsage = maxDrawdownLimit > 0 ? Math.min(100, (currentDrawdown / maxDrawdownLimit) * 100) : 0;
 
+  // --- Daily drawdown guardrail (0% in settings = card hidden) ---
+  const dailyDdPct = Number(cfg.maxDailyDrawdownPercent) || 0;
+  const showDailyDd = dailyDdPct > 0;
+  const showMaxDd = (Number(cfg.maxDrawdownPercent) || 0) > 0;
+  const todayKey = formatDateShort(new Date());
+  const todayPnL = dailyMap[todayKey]?.pnl || 0;
+  const todayTradeCount = dailyMap[todayKey]?.count || 0;
+  const dailyDdLimit = (Number(cfg.startingBalance) || 10000) * (dailyDdPct / 100);
+  const dailyDdUsed = Math.max(0, -todayPnL);
+  const dailyDdUsage = dailyDdLimit > 0 ? Math.min(100, (dailyDdUsed / dailyDdLimit) * 100) : 0;
+  const dailyDdBreached = showDailyDd && dailyDdLimit > 0 && dailyDdUsed >= dailyDdLimit;
+  const dailyDdHint = todayTradeCount === 0 ? 'No trades today yet' : `Today's P&L: ${fmt(todayPnL, sym, true)}`;
+
   const weeklyData = useMemo(() => buildWeeklySummary(scopedTrades), [scopedTrades]);
 
   return (
@@ -144,17 +158,38 @@ export default function Dashboard({ trades = [], settings }) {
         <Stat label="Profit Factor" value={stats.profitFactor} color="#a78bfa" hint="> 1.5 is strong" />
       </div>
 
-      <SectionTitle>Risk Management Monitor</SectionTitle>
-      <div className="risk-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '28px' }}>
-        <RiskCard
-          title={`Maximum Drawdown Limit (${cfg.maxDrawdownPercent}%)`}
-          used={currentDrawdown}
-          limit={maxDrawdownLimit}
-          usagePct={drawdownUsage}
-          sym={sym}
-          hint={`Peak drawdown recorded: ${sym}${maxDrawdown.toFixed(2)}`}
-        />
-      </div>
+      {(showDailyDd || showMaxDd) && (
+        <>
+          <SectionTitle>Risk Management Monitor</SectionTitle>
+          {dailyDdBreached && (
+            <div style={{ backgroundColor: 'rgba(255,82,82,0.12)', border: '1px solid #ff5252', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#ff5252', fontSize: '13px', fontWeight: 700 }}>
+              🛑 DAILY LIMIT HIT — you're down {sym}{dailyDdUsed.toFixed(2)} of your {sym}{dailyDdLimit.toFixed(2)} daily limit. Step away and protect the account.
+            </div>
+          )}
+          <div className="risk-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '28px' }}>
+            {showDailyDd && (
+              <RiskCard
+                title={`Daily Drawdown Limit (${dailyDdPct}%)`}
+                used={dailyDdUsed}
+                limit={dailyDdLimit}
+                usagePct={dailyDdUsage}
+                sym={sym}
+                hint={dailyDdHint}
+              />
+            )}
+            {showMaxDd && (
+              <RiskCard
+                title={`Maximum Drawdown Limit (${cfg.maxDrawdownPercent}%)`}
+                used={currentDrawdown}
+                limit={maxDrawdownLimit}
+                usagePct={drawdownUsage}
+                sym={sym}
+                hint={`Peak drawdown recorded: ${sym}${maxDrawdown.toFixed(2)}`}
+              />
+            )}
+          </div>
+        </>
+      )}
 
       <SectionTitle>Equity Curve</SectionTitle>
       <div className="ts-card chart-container" style={{ height: '320px', marginBottom: '28px', display: 'flex', flexDirection: 'column' }}>

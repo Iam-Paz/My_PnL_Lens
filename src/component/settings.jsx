@@ -133,7 +133,15 @@ export default function Settings({
           <label style={{ ...labelStyle, marginTop: '14px' }}>Default Risk Per Trade (%)</label>
           <input type="number" step="0.1" min="0.1" max="100" className="ts-input" value={settings.riskPerTrade ?? 1} onChange={(e) => handleChange('riskPerTrade', Number(e.target.value))} />
           <label style={{ ...labelStyle, marginTop: '14px' }}>Maximum Drawdown Limit (%)</label>
-          <input type="number" step="0.1" min="1" max="100" className="ts-input" value={settings.maxDrawdownPercent ?? 10} onChange={(e) => handleChange('maxDrawdownPercent', Number(e.target.value))} />
+          <input type="number" step="0.1" min="0" max="100" className="ts-input" value={settings.maxDrawdownPercent ?? 10} onChange={(e) => handleChange('maxDrawdownPercent', Number(e.target.value))} />
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
+            Set to 0 to hide the max drawdown card on the dashboard.
+          </span>
+          <label style={{ ...labelStyle, marginTop: '14px' }}>Maximum Daily Drawdown Limit (%)</label>
+          <input type="number" step="0.1" min="0" max="100" className="ts-input" value={settings.maxDailyDrawdownPercent ?? 3} onChange={(e) => handleChange('maxDailyDrawdownPercent', Number(e.target.value))} />
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
+            Set to 0 to hide the daily drawdown card on the dashboard.
+          </span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
