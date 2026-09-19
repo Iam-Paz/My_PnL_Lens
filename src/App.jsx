@@ -213,16 +213,18 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
-      {/* Single floating toggle, always visible: panel icon flips between its
-          open/close versions, and docks beside the panel while it is open. */}
-      <button
-        className={`sidebar-toggle-btn ${sidebarOpen ? 'docked' : ''}`}
-        aria-label={sidebarOpen ? 'Close menu' : 'Open menu'}
-        title={sidebarOpen ? 'Close menu' : 'Open menu'}
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-      >
-        {sidebarOpen ? <PanelLeftClose size={20} /> : <PanelLeftOpen size={20} />}
-      </button>
+      {/* Floating OPEN button — only exists while the panel is closed.
+          The CLOSE button lives inside the panel header (see sidebar-logo row). */}
+      {!sidebarOpen && (
+        <button
+          className="sidebar-toggle-btn"
+          aria-label="Open menu"
+          title="Open menu"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <PanelLeftOpen size={20} />
+        </button>
+      )}
       <div className={`sidebar-overlay ${sidebarOpen ? 'visible' : ''}`} onClick={() => setSidebarOpen(false)} />
       {/* Slide-over panel: fixed off-canvas at every width (see index.css).
           No collapse state exists anymore, so labels/account/footer always render. */}
@@ -239,6 +241,9 @@ export default function App() {
               </h2>
               <span style={{ fontSize: '10px', color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>PRO JOURNAL</span>
             </div>
+            <button className="sidebar-close-btn" aria-label="Close menu" title="Close menu" onClick={() => setSidebarOpen(false)}>
+              <PanelLeftClose size={18} />
+            </button>
           </div>
           <div className="account-switcher" style={{ marginBottom: '16px' }}>
             <label style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px', paddingLeft: '4px' }}>Active Account</label>

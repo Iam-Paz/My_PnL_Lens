@@ -185,16 +185,32 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transition: left 0.25s ease, background-color 0.15s ease, border-color 0.15s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
 }
 .sidebar-toggle-btn:hover {
   background: var(--bg-surface-hover);
   border-color: #323b4e;
 }
-/* While the panel is open, the toggle slides with it and docks just outside
-   its right edge — always visible, never covering the logo. */
-.sidebar-toggle-btn.docked {
-  left: calc(var(--sidebar-width) + 16px);
+
+/* Close button inside the panel header (logo row, right side). Same panel-icon
+   family as the floating open button — arrow points back into the panel. */
+.sidebar-close-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  padding: 8px;
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.sidebar-close-btn:hover {
+  background: var(--bg-surface-hover);
+  color: #fff;
 }
 
 .sidebar-overlay {
