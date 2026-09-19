@@ -4,6 +4,7 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import { toDate, formatDateShort, sortTradesByDate } from '../utils/dateUtils';
+import ShareCard from './ShareCard.jsx';
 
 const PERIODS = [
   { id: 'today', label: 'Today' },
@@ -55,6 +56,7 @@ export default function Dashboard({ trades = [], settings }) {
   const sym = CUR[cfg.currency] || '$';
 
   const [period, setPeriod] = useState('30d');
+  const [shareOpen, setShareOpen] = useState(false);
   const [calMonth, setCalMonth] = useState(() => {
     const t = new Date();
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
@@ -145,6 +147,20 @@ export default function Dashboard({ trades = [], settings }) {
               {p.label}
             </button>
           ))}
+          <button
+            onClick={() => setShareOpen(true)}
+            className="ts-btn"
+            title="Generate a shareable P&L image"
+            style={{
+              backgroundColor: 'rgba(245, 158, 11, 0.12)',
+              color: '#f59e0b',
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              padding: '7px 12px',
+              fontSize: '12px',
+            }}
+          >
+            📤 Share
+          </button>
         </div>
       </div>
 
@@ -240,7 +256,7 @@ export default function Dashboard({ trades = [], settings }) {
         <Stat label="Trade Win Rate" value={`${stats.winRate}%`} color="#38bdf8" />
         <Stat label="Winning Days Rate" value={`${stats.winningDaysRate}%`} color="#38bdf8" />
         <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
-        <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
+        <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-win)" />
         <Stat label="Trading Days Logged" value={stats.tradingDays} />
         <Stat label="Total Trades" value={stats.totalTrades} />
         <Stat label="Winners" value={stats.winners} color="var(--color-win)" />
@@ -316,6 +332,8 @@ export default function Dashboard({ trades = [], settings }) {
         <Stat label="Total Winners" value={stats.winners} color="var(--color-win)" />
         <Stat label="Total Losers" value={stats.losers} color="var(--color-loss)" />
       </div>
+
+      {shareOpen && <ShareCard trades={trades} settings={cfg} onClose={() => setShareOpen(false)} />}
     </div>
   );
 }
