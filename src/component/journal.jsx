@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote } from 'lucide-react';
 import { toDate } from '../utils/dateUtils';
 import { parseCSVToTrades } from '../utils/csvParser';
 import { formatToLocalTime } from '../utils/tradeStats';
@@ -111,19 +112,19 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
           <p style={{color:'var(--text-secondary)',fontSize:'13px',margin:'4px 0 0 0'}}>Times shown in your local timezone (broker offset UTC{brokerUtcOffset>=0?'+':''}{brokerUtcOffset}). Click a row for detail.</p>
         </div>
         <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
-          {trades.length>0&&<button onClick={handleExportCSV} className="ts-btn ts-btn-ghost">📤 Export</button>}
-          <button onClick={handleImportClick} className="ts-btn ts-btn-primary">📥 Quick Import</button>
+          {trades.length>0&&<button onClick={handleExportCSV} className="ts-btn ts-btn-ghost"><Upload size={14} style={{verticalAlign:'-2px',marginRight:'6px'}} />Export</button>}
+          <button onClick={handleImportClick} className="ts-btn ts-btn-primary"><Download size={14} style={{verticalAlign:'-2px',marginRight:'6px'}} />Quick Import</button>
           <button onClick={()=>setIsModalOpen(true)} className="ts-btn ts-btn-success">+ Log Trade</button>
         </div>
       </div>
 
       <div className="filter-bar" style={{display:'flex',gap:'12px',marginBottom:'20px',flexWrap:'wrap'}}>
-        <input type="text" className="ts-input" placeholder="🔍 Search symbol or ticket..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:'180px'}} />
+        <input type="text" className="ts-input" placeholder="Search symbol or ticket..." value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:'180px'}} />
         <select className="ts-input" value={sortOrder} onChange={e=>setSortOrder(e.target.value)} style={{width:'170px'}}>
-          <option value="newest">⏳ Newest First</option><option value="oldest">⌛ Oldest First</option><option value="pnlHigh">💰 Highest P&L</option><option value="pnlLow">📉 Lowest P&L</option>
+          <option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="pnlHigh">Highest P&L</option><option value="pnlLow">Lowest P&L</option>
         </select>
         <select className="ts-input" value={filterType} onChange={e=>setFilterType(e.target.value)} style={{width:'150px'}}>
-          <option value="all">All Outcomes</option><option value="buy">BUY Only</option><option value="sell">SELL Only</option><option value="win">🟢 Wins</option><option value="loss">🔴 Losses</option>
+          <option value="all">All Outcomes</option><option value="buy">BUY Only</option><option value="sell">SELL Only</option><option value="win">Wins</option><option value="loss">Losses</option>
         </select>
         <select className="ts-input" value={filterSetup} onChange={e=>setFilterSetup(e.target.value)} style={{width:'170px'}}>
           <option value="all">All Playbooks</option>{setupOptions.map(s=><option key={s} value={s}>{s}</option>)}
@@ -145,7 +146,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                       <td className="number-font" style={{color:'var(--text-secondary)',fontSize:'12px'}}>{getTicket(trade)}</td>
                       <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{displayLocal(getOpenTime(trade))}</td>
                       <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{getCloseTime(trade)?displayLocal(getCloseTime(trade)):'—'}</td>
-                      <td style={{fontWeight:700,color:'#fff'}}>{trade.symbol}{trade.notes?<span style={{marginLeft:'6px'}}>📝</span>:null}{trade.screenshot?<span style={{marginLeft:'4px'}}>📷</span>:null}</td>
+                      <td style={{fontWeight:700,color:'#fff'}}>{trade.symbol}{trade.notes?<span style={{marginLeft:'6px'}}><StickyNote size={13} style={{verticalAlign:'-2px'}} /></span>:null}{trade.screenshot?<span style={{marginLeft:'4px'}}><Camera size={13} style={{verticalAlign:'-2px'}} /></span>:null}</td>
                       <td className="center"><span className={dir==='buy'?'badge-buy':'badge-sell'}>{dir.toUpperCase()}</span></td>
                       <td className="num number-font">{getVolume(trade)}</td>
                       <td className="num number-font">{trade.entryPrice||'—'}</td>
@@ -161,7 +162,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                         </select>
                       </td>
                       <td className="center" onClick={e=>e.stopPropagation()}>
-                        <button onClick={()=>handleOpenDetail(trade)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'15px',marginRight:'8px'}}>✏️</button>
+                        <button onClick={()=>handleOpenDetail(trade)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'15px',marginRight:'8px'}}><Pencil size={15} style={{verticalAlign:'middle'}} /></button>
                         <button onClick={()=>handleDeleteTrade(trade.id)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:'15px'}}>✕</button>
                       </td>
                     </tr>
@@ -176,7 +177,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
       {isModalOpen && (
         <div style={overlayStyle}>
           <div className="ts-card modal-mobile" style={{width:'520px',maxWidth:'92%',backgroundColor:'var(--bg-surface)'}}>
-            <h2 style={{marginTop:0,marginBottom:'20px',fontSize:'18px'}}>➕ Log Manual Trade</h2>
+            <h2 style={{marginTop:0,marginBottom:'20px',fontSize:'18px',display:'flex',alignItems:'center',gap:'8px'}}><Plus size={18} /> Log Manual Trade</h2>
             <form onSubmit={handleFormSubmit}>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
                 <div><label style={labelStyle}>Date</label><input type="date" className="ts-input" value={formData.openTime} onChange={e=>setFormData({...formData,openTime:e.target.value})} required /></div>
@@ -242,14 +243,14 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <label style={labelStyle}>Chart Screenshot</label>
                 <input type="file" ref={screenshotRef} accept="image/*" onChange={handleScreenshotUpload} style={{display:'none'}} />
                 {!editingTrade.screenshot?(
-                  <button type="button" onClick={()=>screenshotRef.current.click()} className="ts-btn ts-btn-ghost">📷 Upload Screenshot</button>
+                  <button type="button" onClick={()=>screenshotRef.current.click()} className="ts-btn ts-btn-ghost"><Camera size={14} style={{verticalAlign:'-2px',marginRight:'6px'}} />Upload Screenshot</button>
                 ):(
                   <div><img src={editingTrade.screenshot} alt="Chart" style={{width:'100%',borderRadius:'8px',border:'1px solid var(--border-color)',maxHeight:'300px',objectFit:'contain',background:'#000'}} /><div style={{display:'flex',gap:'8px',marginTop:'8px'}}><button type="button" onClick={()=>screenshotRef.current.click()} className="ts-btn ts-btn-ghost">Replace</button><button type="button" onClick={()=>handleDetailChange('screenshot',null)} className="ts-btn ts-btn-danger">Remove</button></div></div>
                 )}
               </div>
               <div style={{display:'flex',justifyContent:'space-between',gap:'10px',marginTop:'24px',flexWrap:'wrap'}}>
-                <button type="button" onClick={()=>handleDeleteFromDetail(editingTrade.id)} className="ts-btn ts-btn-danger">🗑️ Delete</button>
-                <div style={{display:'flex',gap:'10px'}}><button type="button" onClick={()=>{setIsDetailOpen(false);setEditingTrade(null);}} className="ts-btn ts-btn-ghost">Cancel</button><button type="submit" className="ts-btn ts-btn-success">💾 Save</button></div>
+                <button type="button" onClick={()=>handleDeleteFromDetail(editingTrade.id)} className="ts-btn ts-btn-danger"><Trash2 size={14} style={{verticalAlign:'-2px',marginRight:'6px'}} />Delete</button>
+                <div style={{display:'flex',gap:'10px'}}><button type="button" onClick={()=>{setIsDetailOpen(false);setEditingTrade(null);}} className="ts-btn ts-btn-ghost">Cancel</button><button type="submit" className="ts-btn ts-btn-success"><Save size={14} style={{verticalAlign:'-2px',marginRight:'6px'}} />Save</button></div>
               </div>
             </form>
           </div>

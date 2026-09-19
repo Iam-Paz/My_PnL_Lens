@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Library, Target, BookOpen, Pencil, Shield, Plus, Save } from 'lucide-react';
 import { calculateTradeStats } from '../utils/tradeStats';
 
 export default function Playbooks({ trades = [], setTrades, playbooks = [], setPlaybooks }) {
@@ -130,7 +131,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
         }}
       >
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>📚 Playbooks & Edge Analysis</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><Library size={24} /> Playbooks & Edge Analysis</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
             Manage strategies and evaluate historical performance by setup.
           </p>
@@ -161,7 +162,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
             margin: 0,
           }}
         >
-          🎯 Strategy Edge Comparison
+          <Target size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} /> Strategy Edge Comparison
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--text-secondary)' }}>
           <span>Sort By:</span>
@@ -278,7 +279,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
           marginBottom: '12px',
         }}
       >
-        📖 Active Frameworks ({playbooks.length})
+        <BookOpen size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} /> Active Frameworks ({playbooks.length})
       </h3>
 
       <div
@@ -305,7 +306,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
             </div>
             <div style={{ position: 'absolute', top: '14px', right: '12px', display: 'flex', gap: '4px' }}>
               <button onClick={() => handleOpenEdit(pb)} style={iconBtn} title="Edit playbook">
-                ✏️
+                <Pencil size={13} style={{ verticalAlign: 'middle' }} />
               </button>
               <button onClick={() => handleDeletePlaybook(pb.id, pb.title)} style={iconBtn} title="Delete playbook">
                 ✕
@@ -315,7 +316,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
               {pb.description}
             </p>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <span style={miniBadge}>🛡️ Risk: {pb.riskPercent}</span>
+              <span style={miniBadge}><Shield size={11} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Risk: {pb.riskPercent}</span>
             </div>
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>RULES:</span>
@@ -338,7 +339,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
 
       {/* Modal: Create Playbook */}
       {isCreateOpen && (
-        <Modal title="➕ Create Strategy Playbook" onClose={() => setIsCreateOpen(false)}>
+        <Modal title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><Plus size={18} /> Create Strategy Playbook</span>} onClose={() => setIsCreateOpen(false)}>
           <form onSubmit={handleCreatePlaybook}>
             <label style={labelStyle}>Strategy Title</label>
             <input
@@ -435,7 +436,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
       {/* Modal: Edit Playbook */}
       {isEditOpen && editing && (
         <Modal
-          title="✏️ Edit Strategy Playbook"
+          title={<span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><Pencil size={18} /> Edit Strategy Playbook</span>}
           onClose={() => {
             setIsEditOpen(false);
             setEditing(null);
@@ -532,7 +533,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
                 Cancel
               </button>
               <button type="submit" className="ts-btn ts-btn-success">
-                💾 Save Changes
+                <Save size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} /> Save Changes
               </button>
             </div>
           </form>

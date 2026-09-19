@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Package, FileText, TriangleAlert, ScrollText, Download, Upload } from 'lucide-react';
 import { parseCSVToTrades } from '../utils/csvParser';
 import { formatDateTime, toDate } from '../utils/dateUtils';
 
@@ -109,7 +110,7 @@ export default function Imports({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>📦 CSV Import & History</h1>
+        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><Package size={24} /> CSV Import & History</h1>
         <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
           Import MT5 history with preview, validation, and duplicate protection.
         </p>
@@ -120,7 +121,7 @@ export default function Imports({
           className="ts-card"
           style={{ padding: '32px', textAlign: 'center', border: '2px dashed var(--border-color)' }}
         >
-          <div style={{ fontSize: '36px', marginBottom: '12px' }}>📄</div>
+          <div style={{ marginBottom: '12px' }}><FileText size={40} style={{ color: 'var(--text-muted)' }} /></div>
           <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Select MT5 CSV / TSV File</h3>
           <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '20px' }}>
             Supports comma, tab, or semicolon exports.
@@ -143,7 +144,7 @@ export default function Imports({
 
           {errorMsg && (
             <div style={{ marginTop: '16px', color: 'var(--color-loss)', fontSize: '13px', fontWeight: 600 }}>
-              ⚠️ {errorMsg}
+              <TriangleAlert size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{errorMsg}
             </div>
           )}
         </div>
@@ -168,7 +169,7 @@ export default function Imports({
                   ✓ {parsedPreview.valid.length} Ready to Import
                 </span>
                 <span style={{ color: '#f59e0b', fontWeight: 600 }}>
-                  ⚠️ {parsedPreview.duplicates.length} Duplicates Skipped
+                  <TriangleAlert size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />{parsedPreview.duplicates.length} Duplicates Skipped
                 </span>
                 <span style={{ color: '#f87171', fontWeight: 600 }}>
                   ✕ {parsedPreview.invalid.length} Invalid Rows
@@ -277,7 +278,7 @@ export default function Imports({
 
       <div className="ts-card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '15px' }}>📜 Activity Log</h3>
+          <h3 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><ScrollText size={16} /> Activity Log</h3>
           {activityLog.length > 0 && (
             <button onClick={clearActivityLog} className="ts-btn ts-btn-danger" style={{ fontSize: '11px', padding: '4px 8px' }}>
               Clear Log
@@ -305,7 +306,7 @@ export default function Imports({
                 }}
               >
                 <span>
-                  <strong>{log.type === 'import' ? '📥 Imported' : '📤 Exported'}</strong>{' '}
+                  <strong>{log.type === 'import' ? <><Download size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Imported</> : <><Upload size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Exported</>}</strong>{' '}
                   {log.tradeCount} trades ({log.filename})
                 </span>
                 <span style={{ color: 'var(--text-secondary)' }}>
