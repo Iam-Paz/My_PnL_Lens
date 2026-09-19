@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Repeat } from 'lucide-react';
 import {
   calculateTradeStats,
   calculateDrawdown,
@@ -161,7 +162,9 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
         }}
       >
         <div>
-          <h3 style={{ margin: 0, fontSize: '16px', color: '#fff' }}>🔄 Period Comparison</h3>
+          <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Repeat size={18} /> Period Comparison
+          </h3>
           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
             Compare performance metrics side-by-side across two distinct trading windows.
           </p>

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { ClipboardList, Scale, ListChecks } from 'lucide-react';
 import { calculateRuleAdherenceStats } from '../utils/tradeStats';
 
 export default function RuleAdherence({ trades = [], playbooks = [] }) {
@@ -29,7 +30,7 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
     // Pass through trades to check individual rules
     for (const t of trades) {
       if (!t.setup || t.setup === 'Untagged') continue;
-      
+
       const pb = playbooks.find((p) => p.title === t.setup);
       if (!pb || !pb.rules) continue;
 
@@ -66,7 +67,9 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
   if (trades.length === 0 || !hasPlaybooksWithRules || totalTaggedTrades === 0) {
     return (
       <div className="ts-card" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-        <h3 style={{ margin: '0 0 8px 0', color: '#fff' }}>📋 Playbook Rule Adherence</h3>
+        <h3 style={{ margin: '0 0 8px 0', color: '#fff' }}>
+          <ClipboardList size={18} style={{ verticalAlign: '-3px', marginRight: '6px' }} /> Playbook Rule Adherence
+        </h3>
         <p style={{ margin: 0, fontSize: '13px' }}>
           Rule adherence tracking will appear here once you assign trades to a Playbook and record your checklist rules.
         </p>
@@ -86,10 +89,12 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-      
+
       {/* CARD 1: Side-by-Side Stats */}
       <div className="ts-card">
-        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#fff' }}>⚖️ Discipline Comparison</h3>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Scale size={18} /> Discipline Comparison
+        </h3>
         <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
           Historical outcomes comparing disciplined execution vs rule violations.
         </p>
@@ -163,7 +168,9 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
 
       {/* CARD 2: Rule-by-Rule Compliance Tracker */}
       <div className="ts-card" style={{ display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#fff' }}>📝 Checklist Rule Compliance</h3>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <ListChecks size={18} /> Checklist Rule Compliance
+        </h3>
         <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
           Tracking execution rates per rule (sorted from most skipped/broken to most followed).
         </p>
@@ -175,10 +182,10 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
             </div>
           ) : (
             ruleBreakdown.map((item) => {
-              const barColor = item.rate >= 80 
-                ? 'var(--color-win)' 
-                : item.rate >= 50 
-                ? '#facc15' 
+              const barColor = item.rate >= 80
+                ? 'var(--color-win)'
+                : item.rate >= 50
+                ? '#facc15'
                 : 'var(--color-loss)';
 
               return (

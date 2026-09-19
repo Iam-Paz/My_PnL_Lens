@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Target } from 'lucide-react';
 import { calculateEdgeMatrix } from '../utils/tradeStats';
 
 const DIMENSION_FILTERS = [
@@ -53,7 +54,9 @@ export default function KnowYourEdge({
     <div className="ts-card" style={{ marginBottom: '28px' }}>
       {/* Title & Explanatory Subheader */}
       <div style={{ marginBottom: '16px' }}>
-        <h3 style={{ margin: 0, fontSize: '18px', color: '#fff' }}>🎯 Know Your Edge Matrix</h3>
+        <h3 style={{ margin: 0, fontSize: '18px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Target size={20} /> Know Your Edge Matrix
+        </h3>
         <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)' }}>
           Historical statistical breakdown across setups, sessions, directions, days, and behaviors.
         </p>

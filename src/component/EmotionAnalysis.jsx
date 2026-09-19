@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { Brain } from 'lucide-react';
 import { calculateEmotionStats } from '../utils/tradeStats';
 
 export default function EmotionAnalysis({ trades = [] }) {
@@ -39,7 +40,9 @@ export default function EmotionAnalysis({ trades = [] }) {
         }}
       >
         <div>
-          <h3 style={{ margin: 0, fontSize: '16px', color: '#fff' }}>🧠 Emotion & Mindset Performance</h3>
+          <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Brain size={18} /> Emotion & Mindset Performance
+          </h3>
           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
             Observed historical outcomes grouped by recorded emotional state.
           </p>
