@@ -1,12 +1,13 @@
+import { BarChart3, Target, Library, Shield, Share2, Lock, BookOpen, Rocket, Smartphone, Luggage, TrendingUp, Heart, Coffee } from 'lucide-react';
 import { SHOW_LOVE_URL } from '../config.js';
 
 const FEATURES = [
-  { icon: '📊', title: 'Deep Analytics', text: 'Win rate, profit factor, expectancy, R-multiples, streaks, drawdowns — every number that matters, calculated instantly.' },
-  { icon: '🎯', title: 'Know Your Edge', text: '7-dimension breakdown: which sessions, setups, days, symbols and emotions actually make you money.' },
-  { icon: '📚', title: 'Playbooks & Discipline', text: 'Define your strategies, tag every trade, and see the cost of breaking your own rules.' },
-  { icon: '🛡️', title: 'Risk Guardrails', text: 'Daily & max drawdown monitors with breach alerts. Set any limit to 0% to hide it.' },
-  { icon: '📤', title: 'Shareable PnL Cards', text: 'One-click performance images for WhatsApp & X — with a privacy mode that hides $ amounts.' },
-  { icon: '🔒', title: '100% Private', text: 'No account, no servers, no tracking. Your data lives in your browser and nowhere else.' },
+  { icon: BarChart3, title: 'Deep Analytics', text: 'Win rate, profit factor, expectancy, R-multiples, streaks, drawdowns — every number that matters, calculated instantly.' },
+  { icon: Target, title: 'Know Your Edge', text: '7-dimension breakdown: which sessions, setups, days, symbols and emotions actually make you money.' },
+  { icon: Library, title: 'Playbooks & Discipline', text: 'Define your strategies, tag every trade, and see the cost of breaking your own rules.' },
+  { icon: Shield, title: 'Risk Guardrails', text: 'Daily & max drawdown monitors with breach alerts. Set any limit to 0% to hide it.' },
+  { icon: Share2, title: 'Shareable PnL Cards', text: 'One-click performance images for WhatsApp & X — with a privacy mode that hides $ amounts.' },
+  { icon: Lock, title: '100% Private', text: 'No account, no servers, no tracking. Your data lives in your browser and nowhere else.' },
 ];
 
 const FAQS = [
@@ -43,7 +44,7 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
         </p>
         <div style={ctaRowStyle}>
           <button onClick={onLaunch} className="ts-btn ts-btn-primary" style={ctaPrimaryStyle}>
-            {hasData ? `📖 Continue Journal (${tradeCount} trades)` : '🚀 Launch Free Journal'}
+            {hasData ? <><BookOpen size={16} style={{ verticalAlign: '-3px', marginRight: '8px' }} />Continue Journal ({tradeCount} trades)</> : <><Rocket size={16} style={{ verticalAlign: '-3px', marginRight: '8px' }} />Launch Free Journal</>}
           </button>
           <a href="#screenshots" className="ts-btn ts-btn-ghost" style={ctaGhostStyle}>See it in action ↓</a>
         </div>
@@ -65,13 +66,16 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
         <h2 style={h2Style}>Everything a serious trader needs</h2>
         <p style={sectionSubStyle}>Not a spreadsheet. Not a subscription. A proper analytics cockpit for your trading.</p>
         <div style={featureGridStyle}>
-          {FEATURES.map((f) => (
-            <div key={f.title} className="ts-card">
-              <div style={{ fontSize: '28px', marginBottom: '10px' }}>{f.icon}</div>
-              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#fff' }}>{f.title}</h3>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{f.text}</p>
-            </div>
-          ))}
+          {FEATURES.map((f) => {
+            const Icon = f.icon;
+            return (
+              <div key={f.title} className="ts-card">
+                <div style={{ marginBottom: '10px' }}><Icon size={28} style={{ color: '#38bdf8' }} /></div>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#fff' }}>{f.title}</h3>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{f.text}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -86,7 +90,7 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
         </div>
         <div style={writeupGridStyle}>
           <div className="ts-card">
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>📤</div>
+            <div style={{ marginBottom: '10px' }}><Share2 size={28} style={{ color: '#38bdf8' }} /></div>
             <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: '#fff' }}>Shareable PnL Cards</h3>
             <p style={writeupTextStyle}>
               Turn any period into a clean, branded image in one click.
@@ -94,12 +98,12 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
             </p>
             <ul style={writeupListStyle}>
               <li>Period selector — Today, 7D, 30D, 90D, All Time</li>
-              <li>🔒 Privacy mode swaps $ amounts for percentages</li>
+              <li><Lock size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />Privacy mode swaps $ amounts for percentages</li>
               <li>Crisp high-resolution PNG, ready to send</li>
             </ul>
           </div>
           <div className="ts-card">
-            <div style={{ fontSize: '28px', marginBottom: '10px' }}>📱</div>
+            <div style={{ marginBottom: '10px' }}><Smartphone size={28} style={{ color: '#38bdf8' }} /></div>
             <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: '#fff' }}>Fully Responsive</h3>
             <p style={writeupTextStyle}>
               The full journal in your pocket. Dashboard, journal and analytics
@@ -135,7 +139,7 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
           </div>
         </div>
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', marginTop: '16px' }}>
-          Switching devices? One-click JSON export → import. Your journal travels with you. 🧳
+          Switching devices? One-click JSON export → import. Your journal travels with you. <Luggage size={14} style={{ verticalAlign: '-2px' }} />
         </p>
       </section>
 
@@ -157,7 +161,7 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
         <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', color: '#fff' }}>Stop guessing. Start knowing.</h2>
         <p style={{ color: 'var(--text-secondary)', margin: '0 0 20px 0' }}>Free forever. No signup. Your edge is waiting.</p>
         <button onClick={onLaunch} className="ts-btn ts-btn-primary" style={ctaPrimaryStyle}>
-          {hasData ? `📖 Continue Journal (${tradeCount} trades)` : '🚀 Launch Free Journal'}
+          {hasData ? <><BookOpen size={16} style={{ verticalAlign: '-3px', marginRight: '8px' }} />Continue Journal ({tradeCount} trades)</> : <><Rocket size={16} style={{ verticalAlign: '-3px', marginRight: '8px' }} />Launch Free Journal</>}
         </button>
       </section>
 
@@ -168,8 +172,8 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
           <span style={{ fontWeight: 700, color: '#fff' }}>My_PnL_Lens</span>
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Built by Paz · Green pips only 📈💚</span>
-          <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" style={footerLinkStyle}>☕ Show Love</a>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Built by Paz · Green pips only <TrendingUp size={13} style={{ verticalAlign: '-1px' }} /> <Heart size={13} style={{ verticalAlign: '-1px', color: '#22c55e' }} /></span>
+          <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" style={footerLinkStyle}><Coffee size={13} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Show Love</a>
         </div>
       </footer>
     </div>
