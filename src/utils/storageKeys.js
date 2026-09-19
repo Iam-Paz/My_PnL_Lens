@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   displayName: 'mypnllens_display_name',
   sidebarCollapsed: 'mypnllens_sidebar_collapsed',
   myTickets: 'mypnllens_my_tickets',
+  enteredApp: 'mypnllens_entered_app',
   // Very old single-account format (kept so old installs still migrate)
   legacyTrades: 'mypnllens_trades',
   legacySettings: 'mypnllens_settings',

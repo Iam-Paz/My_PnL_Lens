@@ -6,6 +6,7 @@ import Playbooks from './component/playbooks.jsx';
 import Feedback from './component/feedback.jsx';
 import Settings from './component/settings.jsx';
 import Imports from './component/import.jsx';
+import Landing from './component/Landing.jsx';
 import { STORAGE_KEYS, migrateLegacyKeys, clearAllAppStorage } from './utils/storageKeys.js';
 import { SHOW_LOVE_URL } from './config.js';
 
@@ -75,6 +76,16 @@ function makeAccount(name, trades = []) {
 }
 
 export default function App() {
+  // Landing gate — first visit sees the landing page, then never again
+  const [enteredApp, setEnteredApp] = useState(() => {
+    return localStorage.getItem(STORAGE_KEYS.enteredApp) === 'true';
+  });
+
+  const handleLaunch = () => {
+    localStorage.setItem(STORAGE_KEYS.enteredApp, 'true');
+    setEnteredApp(true);
+  };
+
   // Default page
   const [defaultPage, setDefaultPageState] = useState(() => {
     return getSafeDefaultPage(localStorage.getItem(STORAGE_KEYS.defaultPage));
@@ -136,6 +147,7 @@ export default function App() {
   const activeAccount = accounts.find((a) => a.id === activeAccountId) || accounts[0];
   const trades = activeAccount?.trades || [];
   const settings = activeAccount?.settings || DEFAULT_SETTINGS;
+  const totalTrades = accounts.reduce((s, a) => s + ((a.trades || []).length), 0);
 
   const setTrades = (newTrades) => {
     setAccounts((prev) => prev.map((a) => a.id === activeAccountId ? { ...a, trades: typeof newTrades === 'function' ? newTrades(a.trades) : newTrades } : a));
@@ -181,11 +193,17 @@ export default function App() {
     const fresh = makeAccount('Main Account'); setAccounts([fresh]); setActiveAccountId(fresh.id); setPlaybooks(DEFAULT_PLAYBOOKS); setActivityLog([]);
     clearAllAppStorage();
     setDisplayNameState(FALLBACK_DISPLAY_NAME);
+    setEnteredApp(false);
     alert('All data cleared. Fresh start created.');
   };
 
   const handleNav = (tab) => { setActiveTab(tab); setSidebarOpen(false); };
   useEffect(() => { const handleKey = (e) => { if (e.key === 'Escape') setSidebarOpen(false); }; window.addEventListener('keydown', handleKey); return () => window.removeEventListener('keydown', handleKey); }, []);
+
+  // Landing gate (placed after all hooks): first-time visitors see the landing page
+  if (!enteredApp) {
+    return <Landing onLaunch={handleLaunch} tradeCount={totalTrades} />;
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
@@ -294,7 +312,7 @@ function AccountsPage({ accounts, activeAccountId, setActiveAccountId, addAccoun
     <div>
       <div style={{ marginBottom: '24px' }}><h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>⚙ Manage Accounts</h1><p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>Each account has its own trades AND its own settings.</p></div>
       <form onSubmit={handleAdd} className="ts-card" style={{ marginBottom: '24px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <input type="text" className="ts-input" placeholder="e.g. paz" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '200px' }} />
+        <input type="text" className="ts-input" placeholder="e.g. Prop Firm, Personal MT5, Demo" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '200px' }} />
         <button type="submit" className="ts-btn ts-btn-success">+ Add Account</button>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>

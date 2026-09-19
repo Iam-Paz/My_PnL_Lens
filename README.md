@@ -9,6 +9,15 @@ A free, local-first trading journal for forex traders. Import your MT5 history, 
 
 > **Live Demo:** [https://mypnllens.vercel.app/]
 
+## 📸 Screenshots
+
+![Dashboard](./public/screenshots/dashboard.png)
+*Command dashboard — equity curve, risk monitors & performance stats*
+
+![Analytics](./public/screenshots/analytics.png)
+*Deep analytics — sessions, R-multiples, emotions & edge matrix*
+
+
 ## ✨ Features
 
 **📖 Journaling**
