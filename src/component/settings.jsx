@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { SettingsIcon, Save, Eraser, Recycle, Bomb } from 'lucide-react';
 
 export default function Settings({
   settings,
@@ -36,7 +37,7 @@ export default function Settings({
 
   return (
     <div>
-      <h1 style={{ fontSize: '24px', marginBottom: '8px' }}>⚙️ Settings</h1>
+      <h1 style={{ fontSize: '24px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}><SettingsIcon size={24} /> Settings</h1>
 
       <div style={{ marginBottom: '32px' }}>
         <p style={{ color: 'var(--text-secondary)', marginTop: 0, marginBottom: '16px' }}>
@@ -45,7 +46,7 @@ export default function Settings({
         <div className="ts-card" style={{ maxWidth: '520px' }}>
           <h3 style={sectionTitle}>Personalization</h3>
 
-          <label style={labelStyle}>Sidebar Nickname</label>
+          <label style={labelStyle}>Display Name</label>
           <input
             type="text"
             className="ts-input"
@@ -63,12 +64,12 @@ export default function Settings({
             }}
           />
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Sidebar preview:{' '}
+            App name preview:{' '}
             {/* Added brand font styling to the preview tag */}
             <strong style={{ color: '#fff', fontFamily: 'var(--font-brand)', fontWeight: 700, letterSpacing: '0.02em' }}>
               {appName}
             </strong>
-            {' '}(letters & numbers only; sidebar only — just for fun)
+            {' '}(letters & numbers only; empty becomes My_PnL_Lens)
           </span>
 
           <label style={{ ...labelStyle, marginTop: '16px' }}>Default Page</label>
@@ -133,19 +134,11 @@ export default function Settings({
           <label style={{ ...labelStyle, marginTop: '14px' }}>Default Risk Per Trade (%)</label>
           <input type="number" step="0.1" min="0.1" max="100" className="ts-input" value={settings.riskPerTrade ?? 1} onChange={(e) => handleChange('riskPerTrade', Number(e.target.value))} />
           <label style={{ ...labelStyle, marginTop: '14px' }}>Maximum Drawdown Limit (%)</label>
-          <input type="number" step="0.1" min="0" max="100" className="ts-input" value={settings.maxDrawdownPercent ?? 10} onChange={(e) => handleChange('maxDrawdownPercent', Number(e.target.value))} />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Set to 0 to hide the max drawdown card on the dashboard.
-          </span>
-          <label style={{ ...labelStyle, marginTop: '14px' }}>Maximum Daily Drawdown Limit (%)</label>
-          <input type="number" step="0.1" min="0" max="100" className="ts-input" value={settings.maxDailyDrawdownPercent ?? 3} onChange={(e) => handleChange('maxDailyDrawdownPercent', Number(e.target.value))} />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Set to 0 to hide the daily drawdown card on the dashboard.
-          </span>
+          <input type="number" step="0.1" min="1" max="100" className="ts-input" value={settings.maxDrawdownPercent ?? 10} onChange={(e) => handleChange('maxDrawdownPercent', Number(e.target.value))} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-          <button type="submit" className="ts-btn ts-btn-primary">💾 Save Settings</button>
+          <button type="submit" className="ts-btn ts-btn-primary"><Save size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Save Settings</button>
           {savedMsg && <span style={{ color: 'var(--color-win)', fontSize: '14px' }}>Saved for {accountName}!</span>}
         </div>
       </form>
@@ -153,9 +146,9 @@ export default function Settings({
       <div className="ts-card" style={{ maxWidth: '520px', border: '1px solid #7f1d1d' }}>
         <h3 style={{ ...sectionTitle, color: '#ff5252' }}>Danger Zone</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button type="button" onClick={resetCurrentAccountData} className="ts-btn ts-btn-ghost" style={{ justifyContent: 'flex-start' }}>🧹 Clear trades only (this account)</button>
-          <button type="button" onClick={resetCurrentAccountEverything} className="ts-btn ts-btn-danger" style={{ justifyContent: 'flex-start' }}>♻️ Reset this account (trades + settings)</button>
-          <button type="button" onClick={resetAllAppData} className="ts-btn ts-btn-danger" style={{ justifyContent: 'flex-start', backgroundColor: '#7f1d1d' }}>💣 Wipe ALL app data (all accounts)</button>
+          <button type="button" onClick={resetCurrentAccountData} className="ts-btn ts-btn-ghost" style={{ justifyContent: 'flex-start' }}><Eraser size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Clear trades only (this account)</button>
+          <button type="button" onClick={resetCurrentAccountEverything} className="ts-btn ts-btn-danger" style={{ justifyContent: 'flex-start' }}><Recycle size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Reset this account (trades + settings)</button>
+          <button type="button" onClick={resetAllAppData} className="ts-btn ts-btn-danger" style={{ justifyContent: 'flex-start', backgroundColor: '#7f1d1d' }}><Bomb size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Wipe ALL app data (all accounts)</button>
         </div>
       </div>
     </div>
