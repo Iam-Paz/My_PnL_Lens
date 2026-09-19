@@ -3,6 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from 'recharts';
+import { LayoutDashboard, Share2, TriangleAlert, Flame, Snowflake } from 'lucide-react';
 import { toDate, formatDateShort, sortTradesByDate } from '../utils/dateUtils';
 import ShareCard from './ShareCard.jsx';
 
@@ -125,7 +126,7 @@ export default function Dashboard({ trades = [], settings }) {
     <div>
       <div className="header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>🏠 Command Dashboard</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><LayoutDashboard size={22} /> Command Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
             Showing <strong style={{ color: 'var(--text-primary)' }}>{PERIODS.find((p) => p.id === period)?.label}</strong> · {scopedTrades.length} trades in scope
           </p>
@@ -159,7 +160,7 @@ export default function Dashboard({ trades = [], settings }) {
               fontSize: '12px',
             }}
           >
-            📤 Share
+            <Share2 size={12} /> Share
           </button>
         </div>
       </div>
@@ -178,8 +179,9 @@ export default function Dashboard({ trades = [], settings }) {
         <>
           <SectionTitle>Risk Management Monitor</SectionTitle>
           {dailyDdBreached && (
-            <div style={{ backgroundColor: 'rgba(255,82,82,0.12)', border: '1px solid #ff5252', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#ff5252', fontSize: '13px', fontWeight: 700 }}>
-              🛑 DAILY LIMIT HIT — you're down {sym}{dailyDdUsed.toFixed(2)} of your {sym}{dailyDdLimit.toFixed(2)} daily limit. Step away and protect the account.
+            <div style={{ backgroundColor: 'rgba(255,82,82,0.12)', border: '1px solid #ff5252', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#ff5252', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TriangleAlert size={16} style={{ flexShrink: 0 }} />
+              <span>DAILY LIMIT HIT — you're down {sym}{dailyDdUsed.toFixed(2)} of your {sym}{dailyDdLimit.toFixed(2)} daily limit. Step away and protect the account.</span>
             </div>
           )}
           <div className="risk-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '28px' }}>
@@ -256,7 +258,7 @@ export default function Dashboard({ trades = [], settings }) {
         <Stat label="Trade Win Rate" value={`${stats.winRate}%`} color="#38bdf8" />
         <Stat label="Winning Days Rate" value={`${stats.winningDaysRate}%`} color="#38bdf8" />
         <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
-        <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-win)" />
+        <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
         <Stat label="Trading Days Logged" value={stats.tradingDays} />
         <Stat label="Total Trades" value={stats.totalTrades} />
         <Stat label="Winners" value={stats.winners} color="var(--color-win)" />
@@ -323,8 +325,8 @@ export default function Dashboard({ trades = [], settings }) {
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
         <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
         <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
-        <Stat label="Largest Winning Streak" value={`${stats.longestWinStreak} 🔥`} color="var(--color-win)" />
-        <Stat label="Largest Losing Streak" value={`${stats.longestLossStreak} ❄️`} color="var(--color-loss)" />
+        <Stat label="Largest Winning Streak" value={<span style={streakValueStyle}>{stats.longestWinStreak} <Flame size={16} /></span>} color="var(--color-win)" />
+        <Stat label="Largest Losing Streak" value={<span style={streakValueStyle}>{stats.longestLossStreak} <Snowflake size={16} /></span>} color="var(--color-loss)" />
         <Stat label="Average Trade" value={fmt(stats.avgTrade, sym, true)} />
         <Stat label="Average Winner" value={fmt(stats.avgWin, sym, true)} color="var(--color-win)" />
         <Stat label="Average Loser" value={fmt(-stats.avgLoss, sym, true)} color="var(--color-loss)" />
@@ -525,3 +527,5 @@ const tooltipStyle = {
   borderRadius: '8px',
   fontSize: '12px',
 };
+
+const streakValueStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px' };

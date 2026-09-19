@@ -3,6 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from 'recharts';
+import { TrendingUp, Flame, Snowflake, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   calculateDrawdown,
   calculateStreaks,
@@ -160,7 +161,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
     <div>
       <div className="header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>📈 Performance Analytics</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><TrendingUp size={22} /> Performance Analytics</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>{scoped.length} trades in scope</p>
         </div>
         <div className="period-filters" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -230,9 +231,9 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
           label="Current Streak"
           value={
             streaks.currentStreakType === 'win'
-              ? `${streaks.currentStreakCount} Wins 🔥`
+              ? (<span style={streakValueStyle}>{streaks.currentStreakCount} Wins <Flame size={18} /></span>)
               : streaks.currentStreakType === 'loss'
-              ? `${streaks.currentStreakCount} Losses ❄️`
+              ? (<span style={streakValueStyle}>{streaks.currentStreakCount} Losses <Snowflake size={18} /></span>)
               : 'None'
           }
           color={
@@ -367,11 +368,11 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
       <div className="ts-card" style={{ marginBottom: '28px', padding: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <button type="button" className="ts-btn" onClick={goPrevMonth} style={calNavBtn}>◀</button>
+            <button type="button" className="ts-btn" onClick={goPrevMonth} style={calNavBtn}><ChevronLeft size={14} /></button>
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, minWidth: '160px', textAlign: 'center' }}>
               {MONTH_NAMES[calendar.month]} {calendar.year}
             </h3>
-            <button type="button" className="ts-btn" onClick={goNextMonth} style={calNavBtn}>▶</button>
+            <button type="button" className="ts-btn" onClick={goNextMonth} style={calNavBtn}><ChevronRight size={14} /></button>
             <button type="button" className="ts-btn" onClick={goLatestTradeMonth} style={{ ...calNavBtn, padding: '6px 10px', fontSize: '11px' }}>
               Latest
             </button>
@@ -829,6 +830,7 @@ function fmt(n, sym = '$', signed = false) {
 const tooltipStyle = { backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', fontSize: '12px' };
 const cardH = { fontSize: '15px', marginTop: 0, marginBottom: '16px' };
 const miniBox = { backgroundColor: 'var(--bg-main)', padding: '10px 12px', borderRadius: '8px', fontSize: '13px' };
+const streakValueStyle = { display: 'inline-flex', alignItems: 'center', gap: '6px' };
 const calNavBtn = {
   backgroundColor: 'var(--bg-main)',
   color: 'var(--text-primary, #fff)',

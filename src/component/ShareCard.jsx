@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
+import { Share2, Lock, Download, TrendingUp } from 'lucide-react';
 import { filterTradesByPeriod } from '../utils/dateUtils';
 import { calculateTradeStats } from '../utils/tradeStats';
 
@@ -65,7 +66,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
     <div onClick={onClose} style={overlayStyle}>
       <div onClick={(e) => e.stopPropagation()} style={modalStyle} className="modal-mobile">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', color: '#fff' }}>📤 Share Performance</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}><Share2 size={18} /> Share Performance</h2>
           <button onClick={onClose} className="ts-btn ts-btn-ghost" style={{ padding: '6px 12px' }}>✕</button>
         </div>
 
@@ -125,7 +126,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#4a5468' }}>
-              <span>📈 Made with My_PnL_Lens</span>
+              <span><TrendingUp size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Made with My_PnL_Lens</span>
               <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
           </div>
@@ -138,7 +139,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
             onChange={(e) => setHideAmounts(e.target.checked)}
             style={{ width: '18px', height: '18px', accentColor: '#2962ff', cursor: 'pointer' }}
           />
-          🔒 Hide $ amounts (show % only)
+          <Lock size={16} /> Hide $ amounts (show % only)
         </label>
 
         <button
@@ -147,7 +148,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
           className="ts-btn ts-btn-primary"
           style={{ width: '100%', justifyContent: 'center', padding: '12px', opacity: generating ? 0.6 : 1 }}
         >
-          {generating ? 'Generating...' : '⬇ Download PNG'}
+          {generating ? 'Generating...' : (<><Download size={15} /> Download PNG</>)}
         </button>
       </div>
     </div>
