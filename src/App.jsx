@@ -1,4 +1,8 @@
 import { useState, useEffect } from 'react';
+import {
+  LayoutDashboard, BookOpen, TrendingUp, Library, Package,
+  MessageCircle, Settings as SettingsIcon, Users, Pencil, Trash2, Plus, Coffee,
+} from 'lucide-react';
 import Dashboard from './component/dashboard.jsx';
 import Journal from './component/journal.jsx';
 import Analytics from './component/analytics.jsx';
@@ -188,7 +192,7 @@ export default function App() {
   const resetCurrentAccountEverything = () => { if (!confirm(`Reset "${activeAccount?.name}" completely (trades + settings)?`)) return; setAccounts((prev) => prev.map((a) => a.id === activeAccountId ? { ...a, trades: [], settings: { ...DEFAULT_SETTINGS } } : a)); };
 
   const resetAllAppData = () => {
-    if (!confirm('⚠️ Wipe EVERYTHING? All accounts, trades, settings, playbooks, and import history?')) return;
+    if (!confirm('Wipe EVERYTHING? All accounts, trades, settings, playbooks, and import history?')) return;
     if (!confirm('This is permanent. Are you absolutely sure?')) return;
     const fresh = makeAccount('Main Account'); setAccounts([fresh]); setActiveAccountId(fresh.id); setPlaybooks(DEFAULT_PLAYBOOKS); setActivityLog([]);
     clearAllAppStorage();
@@ -207,7 +211,11 @@ export default function App() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
-      <button className="hamburger-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>{sidebarOpen ? '✕' : '☰'}</button>
+      {!sidebarOpen && (
+        <button className="hamburger-btn" aria-label="Open menu" onClick={() => setSidebarOpen(true)}>
+          ◧
+        </button>
+      )}
       <div className={`sidebar-overlay ${sidebarOpen ? 'visible' : ''}`} onClick={() => setSidebarOpen(false)} />
       {/* position is intentionally left out of this inline style: an inline
           position would always beat the mobile ".ts-sidebar { position: fixed }"
@@ -216,6 +224,7 @@ export default function App() {
           "sticky" default now lives in index.css instead, where the mobile
           override can actually take effect. */}
       <aside className={`ts-sidebar ${sidebarOpen ? 'open' : ''} ${sidebarCollapsed ? 'collapsed' : ''}`} style={{ backgroundColor: 'var(--bg-surface)', borderRight: '1px solid var(--border-color)', padding: '20px 12px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '100vh', flexShrink: 0, transition: 'width 0.2s ease' }}>
+        <button className="sidebar-close-btn" aria-label="Close menu" onClick={() => setSidebarOpen(false)}>✕</button>
         <div>
           <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', paddingLeft: '4px' }}>
             <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', color: '#fff', flexShrink: 0, boxShadow: '0 4px 12px rgba(41, 98, 255, 0.4)' }}>
@@ -238,17 +247,17 @@ export default function App() {
               <select value={activeAccountId || ''} onChange={(e) => setActiveAccountId(e.target.value)} className="ts-input" style={{ fontSize: '13px', fontWeight: 600 }}>
                 {accounts.map((a) => (<option key={a.id} value={a.id}>{a.name} ({a.trades.length})</option>))}
               </select>
-              <button onClick={() => handleNav('accounts')} style={{ marginTop: '6px', width: '100%', background: 'transparent', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)', borderRadius: '6px', padding: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>⚙ Manage Accounts</button>
+              <button onClick={() => handleNav('accounts')} style={{ marginTop: '6px', width: '100%', background: 'transparent', border: '1px dashed var(--border-color)', color: 'var(--text-secondary)', borderRadius: '6px', padding: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><Users size={12} /> Manage Accounts</button>
             </div>
           )}
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            <NavBtn icon="🏠" label="Dashboard" collapsed={sidebarCollapsed} active={activeTab === 'dashboard'} onClick={() => handleNav('dashboard')} />
-            <NavBtn icon="📖" label="Journal" collapsed={sidebarCollapsed} active={activeTab === 'journal'} onClick={() => handleNav('journal')} />
-            <NavBtn icon="📈" label="Analytics" collapsed={sidebarCollapsed} active={activeTab === 'analytics'} onClick={() => handleNav('analytics')} />
-            <NavBtn icon="📚" label="Playbooks" collapsed={sidebarCollapsed} active={activeTab === 'playbooks'} onClick={() => handleNav('playbooks')} />
-            <NavBtn icon="📦" label="Imports" collapsed={sidebarCollapsed} active={activeTab === 'imports'} onClick={() => handleNav('imports')} />
-            <NavBtn icon="💬" label="Support" collapsed={sidebarCollapsed} active={activeTab === 'feedback'} onClick={() => handleNav('feedback')} />
-            <NavBtn icon="⚙️" label="Settings" collapsed={sidebarCollapsed} active={activeTab === 'settings'} onClick={() => handleNav('settings')} />
+            <NavBtn icon={LayoutDashboard} label="Dashboard" collapsed={sidebarCollapsed} active={activeTab === 'dashboard'} onClick={() => handleNav('dashboard')} />
+            <NavBtn icon={BookOpen} label="Journal" collapsed={sidebarCollapsed} active={activeTab === 'journal'} onClick={() => handleNav('journal')} />
+            <NavBtn icon={TrendingUp} label="Analytics" collapsed={sidebarCollapsed} active={activeTab === 'analytics'} onClick={() => handleNav('analytics')} />
+            <NavBtn icon={Library} label="Playbooks" collapsed={sidebarCollapsed} active={activeTab === 'playbooks'} onClick={() => handleNav('playbooks')} />
+            <NavBtn icon={Package} label="Imports" collapsed={sidebarCollapsed} active={activeTab === 'imports'} onClick={() => handleNav('imports')} />
+            <NavBtn icon={MessageCircle} label="Support" collapsed={sidebarCollapsed} active={activeTab === 'feedback'} onClick={() => handleNav('feedback')} />
+            <NavBtn icon={SettingsIcon} label="Settings" collapsed={sidebarCollapsed} active={activeTab === 'settings'} onClick={() => handleNav('settings')} />
           </nav>
         </div>
         {!sidebarCollapsed && (
@@ -256,8 +265,8 @@ export default function App() {
             <p style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>ACTIVE ACCOUNT</p>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{activeAccount?.name}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}><span className="number-font" style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{trades.length}</span> trades logged</div>
-            <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" title="Support My_PnL_Lens on Selar" style={{ display: 'block', marginTop: '10px', padding: '8px', textAlign: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', color: '#f59e0b', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
-              ☕ Show some love
+            <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" title="Support My_PnL_Lens on Selar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px', padding: '8px', textAlign: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', color: '#f59e0b', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
+              <Coffee size={13} /> Show some love
             </a>
           </div>
         )}
@@ -296,10 +305,10 @@ export default function App() {
   );
 }
 
-function NavBtn({ icon, label, active, onClick, collapsed }) {
+function NavBtn({ icon: Icon, label, active, onClick, collapsed }) {
   return (
     <button onClick={onClick} title={collapsed ? label : undefined} style={{ padding: collapsed ? '10px 0' : '10px 14px', backgroundColor: active ? 'rgba(41, 98, 255, 0.12)' : 'transparent', color: active ? '#60a5fa' : 'var(--text-secondary)', border: '1px solid', borderColor: active ? 'rgba(41, 98, 255, 0.3)' : 'transparent', borderRadius: 'var(--radius-sm)', textAlign: collapsed ? 'center' : 'left', cursor: 'pointer', fontSize: '13px', fontWeight: active ? 600 : 500, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: '10px', transition: 'all 0.15s ease' }}>
-      <span style={{ fontSize: '16px' }}>{icon}</span>{!collapsed && <span>{label}</span>}
+      <Icon size={16} />{!collapsed && <span>{label}</span>}
     </button>
   );
 }
@@ -310,10 +319,10 @@ function AccountsPage({ accounts, activeAccountId, setActiveAccountId, addAccoun
   const startEdit = (a) => { setEditingId(a.id); setEditName(a.name); }; const saveEdit = () => { renameAccount(editingId, editName); setEditingId(null); };
   return (
     <div>
-      <div style={{ marginBottom: '24px' }}><h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>⚙ Manage Accounts</h1><p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>Each account has its own trades AND its own settings.</p></div>
+      <div style={{ marginBottom: '24px' }}><h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><Users size={22} /> Manage Accounts</h1><p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>Each account has its own trades AND its own settings.</p></div>
       <form onSubmit={handleAdd} className="ts-card" style={{ marginBottom: '24px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
         <input type="text" className="ts-input" placeholder="e.g. Prop Firm, Personal MT5, Demo" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '200px' }} />
-        <button type="submit" className="ts-btn ts-btn-success">+ Add Account</button>
+        <button type="submit" className="ts-btn ts-btn-success"><Plus size={14} /> Add Account</button>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>
         {accounts.map((a) => {
@@ -329,8 +338,8 @@ function AccountsPage({ accounts, activeAccountId, setActiveAccountId, addAccoun
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px' }}>Net P&L: <span className="number-font" style={{ color: netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)', fontWeight: 700 }}>{netPnL >= 0 ? '+' : '-'}${Math.abs(netPnL).toFixed(2)}</span></div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {!isActive && <button onClick={() => setActiveAccountId(a.id)} className="ts-btn ts-btn-primary" style={{ fontSize: '11px', padding: '6px 10px' }}>Switch to</button>}
-                <button onClick={() => startEdit(a)} className="ts-btn ts-btn-ghost" style={{ fontSize: '11px', padding: '6px 10px' }}>✏️ Rename</button>
-                <button onClick={() => deleteAccount(a.id)} className="ts-btn ts-btn-danger" style={{ fontSize: '11px', padding: '6px 10px' }}>🗑️ Delete</button>
+                <button onClick={() => startEdit(a)} className="ts-btn ts-btn-ghost" style={{ fontSize: '11px', padding: '6px 10px' }}><Pencil size={12} /> Rename</button>
+                <button onClick={() => deleteAccount(a.id)} className="ts-btn ts-btn-danger" style={{ fontSize: '11px', padding: '6px 10px' }}><Trash2 size={12} /> Delete</button>
               </div>
             </div>
           );
