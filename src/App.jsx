@@ -7,6 +7,7 @@ import Feedback from './component/feedback.jsx';
 import Settings from './component/settings.jsx';
 import Imports from './component/import.jsx';
 import { STORAGE_KEYS, migrateLegacyKeys, clearAllAppStorage } from './utils/storageKeys.js';
+import { SHOW_LOVE_URL } from './config.js';
 
 // Moves any pre-rebrand 'tradersstack_*' data to the new keys.
 // Must run here (module level) BEFORE the useState initializers below read localStorage.
@@ -236,6 +237,9 @@ export default function App() {
             <p style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>ACTIVE ACCOUNT</p>
             <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{activeAccount?.name}</div>
             <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}><span className="number-font" style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{trades.length}</span> trades logged</div>
+            <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" title="Support My_PnL_Lens on Selar" style={{ display: 'block', marginTop: '10px', padding: '8px', textAlign: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', color: '#f59e0b', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
+              ☕ Show some love
+            </a>
           </div>
         )}
       </aside>

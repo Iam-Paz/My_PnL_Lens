@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { STORAGE_KEYS } from '../utils/storageKeys.js';
+import { SHOW_LOVE_URL } from '../config.js';
 
 // 👉 Your live Formspree endpoint
 const FORMSPREE_URL = 'https://formspree.io/f/mnpqgjnd';
@@ -72,6 +73,19 @@ export default function Feedback() {
       <p style={{ color: '#787b86', marginTop: 0, marginBottom: '24px' }}>
         Found a bug? Have a request? Send us a message — it lands straight in our inbox.
       </p>
+
+      {/* Donate banner */}
+      <div style={donateBannerStyle}>
+        <div>
+          <h3 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#fff' }}>☕ Enjoying My_PnL_Lens?</h3>
+          <p style={{ margin: 0, color: '#d1d4dc', fontSize: '13px', lineHeight: 1.5 }}>
+            This journal is free forever. If it&apos;s helping your trading, show some love — every tip keeps new features coming.
+          </p>
+        </div>
+        <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" style={coffeeBtnStyle}>
+          ☕ Show Love
+        </a>
+      </div>
 
       <div className="support-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 520px) 1fr', gap: '24px', alignItems: 'start' }}>
         {/* Contact Form */}
@@ -157,3 +171,5 @@ const labelStyle = { display: 'block', fontSize: '12px', color: '#787b86', margi
 const inputStyle = { width: '100%', padding: '10px', backgroundColor: '#131722', border: '1px solid #363a45', color: 'white', borderRadius: '6px', boxSizing: 'border-box' };
 const btnStyle = { border: 'none', color: 'white', padding: '11px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' };
 const badgeStyle = { backgroundColor: '#2a2e39', color: '#d1d4dc', fontSize: '11px', padding: '3px 8px', borderRadius: '4px' };
+const donateBannerStyle = { backgroundColor: '#1e222d', padding: '20px', borderRadius: '10px', border: '1px solid rgba(245, 158, 11, 0.4)', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' };
+const coffeeBtnStyle = { backgroundColor: '#f59e0b', color: '#1a1a1a', padding: '11px 20px', borderRadius: '6px', fontWeight: 'bold', fontSize: '14px', textDecoration: 'none', whiteSpace: 'nowrap' };
