@@ -59,7 +59,7 @@ function toBrandLabel(displayName) {
   return base.charAt(0).toUpperCase() + base.slice(1);
 }
 
-// Generates app name: Paz_PnL_Lens
+// Generates sidebar nickname: Paz_PnL_Lens (sidebar only — the public brand is always My_PnL_Lens)
 function getAppName(displayName) {
   return `${toBrandLabel(displayName)}_PnL_Lens`;
 }
@@ -101,10 +101,11 @@ export default function App() {
   const appName = getAppName(displayName);
   const logoBadge = displayName.slice(0, 2).toUpperCase();
 
-  // Browser tab title
+  // Browser tab title — ALWAYS the main brand, never the nickname.
+  // Branding rule: public surfaces = My_PnL_Lens, sidebar = personal playground.
   useEffect(() => {
-    document.title = appName;
-  }, [appName]);
+    document.title = 'My_PnL_Lens';
+  }, []);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -293,7 +294,7 @@ function AccountsPage({ accounts, activeAccountId, setActiveAccountId, addAccoun
     <div>
       <div style={{ marginBottom: '24px' }}><h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0 }}>⚙ Manage Accounts</h1><p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>Each account has its own trades AND its own settings.</p></div>
       <form onSubmit={handleAdd} className="ts-card" style={{ marginBottom: '24px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-        <input type="text" className="ts-input" placeholder="e.g. Prop Firm, Personal MT5, Demo" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '200px' }} />
+        <input type="text" className="ts-input" placeholder="e.g. paz" value={newName} onChange={(e) => setNewName(e.target.value)} style={{ flex: 1, minWidth: '200px' }} />
         <button type="submit" className="ts-btn ts-btn-success">+ Add Account</button>
       </form>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px' }}>

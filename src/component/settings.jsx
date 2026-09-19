@@ -45,7 +45,7 @@ export default function Settings({
         <div className="ts-card" style={{ maxWidth: '520px' }}>
           <h3 style={sectionTitle}>Personalization</h3>
 
-          <label style={labelStyle}>Display Name</label>
+          <label style={labelStyle}>Sidebar Nickname</label>
           <input
             type="text"
             className="ts-input"
@@ -63,12 +63,12 @@ export default function Settings({
             }}
           />
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            App name preview:{' '}
+            Sidebar preview:{' '}
             {/* Added brand font styling to the preview tag */}
             <strong style={{ color: '#fff', fontFamily: 'var(--font-brand)', fontWeight: 700, letterSpacing: '0.02em' }}>
               {appName}
             </strong>
-            {' '}(letters & numbers only; empty becomes My_PnL_Lens)
+            {' '}(letters & numbers only; sidebar only — just for fun)
           </span>
 
           <label style={{ ...labelStyle, marginTop: '16px' }}>Default Page</label>
