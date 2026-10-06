@@ -13,7 +13,7 @@ import Settings from './component/settings.jsx';
 import Imports from './component/import.jsx';
 import Landing from './component/Landing.jsx';
 import { STORAGE_KEYS, migrateLegacyKeys, clearAllAppStorage } from './utils/storageKeys.js';
-import { getSafeThemeMode, getSystemThemeMode, resolveSkin, getTradesTotalPnl, SkinContext } from './utils/themeConfig.js';
+import { getSafeThemeMode, getSystemThemeMode, subscribeToSystemTheme, FALLBACK_THEME_MODE, resolveSkin, getTradesTotalPnl, SkinContext } from './utils/themeConfig.js';
 import { SHOW_LOVE_URL } from './config.js';
 
 // Moves any pre-rebrand 'tradersstack_*' data to the new keys.
@@ -116,10 +116,10 @@ export default function App() {
   };
 
   // Appearance — a device preference like display name (NOT per account).
-  // First visit follows the OS; after that the saved choice wins.
+  // Default is 'system' (live-follows the OS); a saved pick wins after that.
   const [themeMode, setThemeModeState] = useState(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.theme);
-    return saved ? getSafeThemeMode(saved) : getSystemThemeMode();
+    return saved ? getSafeThemeMode(saved) : FALLBACK_THEME_MODE;
   });
 
   const setThemeMode = (mode) => {
@@ -127,6 +127,10 @@ export default function App() {
     setThemeModeState(safe);
     localStorage.setItem(STORAGE_KEYS.theme, safe);
   };
+
+  // Live OS scheme for 'system' mode — flips the app when the device does.
+  const [systemSkin, setSystemSkin] = useState(() => getSystemThemeMode());
+  useEffect(() => subscribeToSystemTheme(setSystemSkin), []);
 
   const appName = getAppName(displayName);
   const logoBadge = displayName.slice(0, 2).toUpperCase();
@@ -168,7 +172,8 @@ export default function App() {
   const totalTrades = accounts.reduce((s, a) => s + ((a.trades || []).length), 0);
 
   // P&L-Based mode tints the whole app from the ACTIVE account's all-time total.
-  const skin = resolveSkin(themeMode, getTradesTotalPnl(trades));
+  // System mode resolves from the live OS scheme tracked above.
+  const skin = resolveSkin(themeMode, getTradesTotalPnl(trades), systemSkin);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', skin);
@@ -220,7 +225,7 @@ export default function App() {
     const fresh = makeAccount('Main Account'); setAccounts([fresh]); setActiveAccountId(fresh.id); setPlaybooks(DEFAULT_PLAYBOOKS); setActivityLog([]);
     clearAllAppStorage();
     setDisplayNameState(FALLBACK_DISPLAY_NAME);
-    setThemeModeState(getSystemThemeMode());
+    setThemeModeState(FALLBACK_THEME_MODE);
     setEnteredApp(false);
     alert('All data cleared. Fresh start created.');
   };

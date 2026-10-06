@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun, TrendingUp } from 'lucide-react';
+import { SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun, TrendingUp, Monitor } from 'lucide-react';
 import { THEME_MODES } from '../utils/themeConfig.js';
 
 export default function Settings({
@@ -14,7 +14,7 @@ export default function Settings({
   displayName = 'my',
   setDisplayName,
   appName = 'My_PnL_Lens',
-  themeMode = 'dark',
+  themeMode = 'system',
   setThemeMode,
 }) {
   const [savedMsg, setSavedMsg] = useState(false);
@@ -113,14 +113,14 @@ export default function Settings({
                     fontSize: '12px',
                   }}
                 >
-                  {m.id === 'dark' ? <Moon size={13} /> : m.id === 'light' ? <Sun size={13} /> : <TrendingUp size={13} />}
+                  {m.id === 'system' ? <Monitor size={13} /> : m.id === 'dark' ? <Moon size={13} /> : m.id === 'light' ? <Sun size={13} /> : <TrendingUp size={13} />}
                   {m.label}
                 </button>
               );
             })}
           </div>
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Saved on this device only. P&L Based glows green in profit and red in loss, from the active account's total P&L.
+            Saved on this device only. System follows your device's light/dark setting. P&L Based glows green in profit and red in loss, from the active account's total P&L.
           </span>
         </div>
       </div>

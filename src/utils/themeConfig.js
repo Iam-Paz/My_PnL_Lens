@@ -1,37 +1,56 @@
 import { createContext, useContext } from 'react';
 
 // ---------------------------------------------------------------------------
-// Theme system: Dark / Light / P&L Based
+// Theme system: System / Dark / Light / P&L Based
 //
 // A MODE is what the user picks in Settings. A SKIN is what actually gets
 // applied to the page via <html data-theme="...">:
-//   'dark'  -> 'dark'
-//   'light' -> 'light'
-//   'pnl'   -> 'pnl-profit' | 'dark' | 'pnl-loss' (from the active account's
-//              total all-time P&L: above $0 profit, below $0 loss, exactly
-//              $0 (or no trades) stays neutral dark)
+//   'system' -> 'light' | 'dark' (live-follows the OS color scheme)
+//   'dark'   -> 'dark'
+//   'light'  -> 'light'
+//   'pnl'    -> 'pnl-profit' | 'dark' | 'pnl-loss' (from the active account's
+//               total all-time P&L: above $0 profit, below $0 loss, exactly
+//               $0 (or no trades) stays neutral dark)
 // ---------------------------------------------------------------------------
 
 export const THEME_MODES = [
+  { id: 'system', label: 'System' },
   { id: 'dark', label: 'Dark' },
   { id: 'light', label: 'Light' },
   { id: 'pnl', label: 'P&L Based' },
 ];
 
-export const FALLBACK_THEME_MODE = 'dark';
+export const FALLBACK_THEME_MODE = 'system';
 
 export function getSafeThemeMode(value) {
   return THEME_MODES.some((m) => m.id === value) ? value : FALLBACK_THEME_MODE;
 }
 
-// First-visit default: follow the device (light OS -> light app).
+// One-shot read of the OS color scheme: 'light' or 'dark'.
 export function getSystemThemeMode() {
   try {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches
       ? 'light'
       : 'dark';
   } catch {
-    return FALLBACK_THEME_MODE;
+    return 'dark';
+  }
+}
+
+// Live OS-theme tracking for 'system' mode. Calls onChange('light'|'dark')
+// whenever the device scheme flips. Returns an unsubscribe function.
+export function subscribeToSystemTheme(onChange) {
+  try {
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const listener = (e) => onChange(e.matches ? 'light' : 'dark');
+    if (mq.addEventListener) mq.addEventListener('change', listener);
+    else if (mq.addListener) mq.addListener(listener); // older Safari
+    return () => {
+      if (mq.removeEventListener) mq.removeEventListener('change', listener);
+      else if (mq.removeListener) mq.removeListener(listener);
+    };
+  } catch {
+    return () => {};
   }
 }
 
@@ -39,8 +58,9 @@ export function getTradesTotalPnl(trades) {
   return (trades || []).reduce((s, t) => s + (Number(t.profit ?? t.pnl) || 0), 0);
 }
 
-export function resolveSkin(mode, totalPnl) {
+export function resolveSkin(mode, totalPnl, systemSkin = getSystemThemeMode()) {
   if (mode === 'light') return 'light';
+  if (mode === 'system') return systemSkin === 'light' ? 'light' : 'dark';
   if (mode === 'pnl') {
     if (totalPnl > 0) return 'pnl-profit';
     if (totalPnl < 0) return 'pnl-loss';

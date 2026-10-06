@@ -149,7 +149,7 @@ export default function Dashboard({ trades = [], settings }) {
 
       <SectionTitle>Performance Overview</SectionTitle>
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginBottom: '28px' }}>
-        <Stat label="Net P&L" value={fmt(stats.netPnL, sym, true)} color={stats.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)'} />
+        <Stat label="Net P&L" value={fmt(stats.netPnL, sym, true)} color={stats.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)'} wash={stats.netPnL >= 0 ? 'profit' : 'loss'} />
         <Stat label="Win Rate" value={`${stats.winRate}%`} color="var(--color-sky)" />
         <Stat label="Avg Winning Trade" value={fmt(stats.avgWin, sym, true)} color="var(--color-win)" />
         <Stat label="Avg Losing Trade" value={fmt(-stats.avgLoss, sym, true)} color="var(--color-loss)" />
@@ -464,9 +464,12 @@ function SectionTitle({ children, right }) {
   );
 }
 
-function Stat({ label, value, color, hint }) {
+function Stat({ label, value, color, hint, wash }) {
+  // Optional P&L wash: tints the card green/red (used by the Net P&L hero stat).
+  const washBg = wash === 'profit' ? 'var(--color-win-bg)' : wash === 'loss' ? 'var(--color-loss-bg)' : null;
+  const washBorder = wash === 'profit' ? 'var(--color-win)' : wash === 'loss' ? 'var(--color-loss)' : null;
   return (
-    <div className="ts-card" style={{ padding: '14px 16px' }}>
+    <div className="ts-card" style={{ padding: '14px 16px', ...(washBg ? { backgroundColor: washBg, border: `1px solid ${washBorder}` } : {}) }}>
       <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', margin: '0 0 6px 0' }}>{label}</p>
       <h2 className="number-font" style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: color || 'var(--text-bright)' }}>{value}</h2>
       {hint && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{hint}</span>}
