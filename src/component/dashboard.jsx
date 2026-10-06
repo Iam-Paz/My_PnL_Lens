@@ -4,7 +4,8 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import { LayoutDashboard, Share2, TriangleAlert, Flame, Snowflake } from 'lucide-react';
-import { toDate, formatDateShort, sortTradesByDate } from '../utils/dateUtils';
+import { formatDateShort, filterTradesByPeriod, getTradeResultDate } from '../utils/dateUtils';
+import { sortTradesChronological } from '../utils/tradeStats';
 import ShareCard from './ShareCard.jsx';
 
 const PERIODS = [
@@ -19,31 +20,8 @@ const PERIODS = [
 
 const CUR = { USD: '$', EUR: '€', GBP: '£', NGN: '₦' };
 
-function getTradeDate(t) {
-  return toDate(t.openAt || t.openTime || t.date);
-}
-
 function getTradePnL(t) {
   return Number(t.pnl ?? t.profit) || 0;
-}
-
-function filterByPeriod(trades, period) {
-  if (period === 'all') return trades;
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-  let start = new Date(now);
-
-  if (period === 'today') start.setHours(0, 0, 0, 0);
-  else if (period === '7d') { start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); }
-  else if (period === '30d') { start.setDate(start.getDate() - 29); start.setHours(0, 0, 0, 0); }
-  else if (period === '60d') { start.setDate(start.getDate() - 59); start.setHours(0, 0, 0, 0); }
-  else if (period === '90d') { start.setDate(start.getDate() - 89); start.setHours(0, 0, 0, 0); }
-  else if (period === 'month') start = new Date(now.getFullYear(), now.getMonth(), 1);
-
-  return trades.filter((t) => {
-    const d = getTradeDate(t);
-    return d && d >= start && d <= now;
-  });
 }
 
 export default function Dashboard({ trades = [], settings }) {
@@ -63,13 +41,14 @@ export default function Dashboard({ trades = [], settings }) {
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  const scopedTrades = useMemo(() => filterByPeriod(trades, period), [trades, period]);
+  // Shared period filter (same helper + same close-date basis as Analytics & Share Card)
+  const scopedTrades = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
   const stats = useMemo(() => computeStats(scopedTrades), [scopedTrades]);
 
   const dailyMap = useMemo(() => {
     const m = {};
     for (const t of trades) {
-      const d = getTradeDate(t);
+      const d = getTradeResultDate(t);
       if (!d) continue;
       const key = formatDateShort(d);
       if (!m[key]) m[key] = { pnl: 0, count: 0, wins: 0, losses: 0 };
@@ -84,13 +63,13 @@ export default function Dashboard({ trades = [], settings }) {
 
   const equityData = useMemo(() => {
     // Sort trades chronologically (oldest first) for equity accumulation
-    const sorted = sortTradesByDate(scopedTrades, false);
+    const sorted = sortTradesChronological(scopedTrades);
     let equity = Number(cfg.startingBalance) || 10000;
     let peak = equity;
     const rows = [];
     for (const t of sorted) {
       const p = getTradePnL(t);
-      const d = getTradeDate(t);
+      const d = getTradeResultDate(t);
       equity += p;
       if (equity > peak) peak = equity;
       rows.push({
@@ -359,7 +338,7 @@ function computeStats(trades) {
   const bestTrade = totalTrades ? Math.max(...profitsArr) : 0;
   const worstTrade = totalTrades ? Math.min(...profitsArr) : 0;
 
-  const chrono = sortTradesByDate(trades, false);
+  const chrono = sortTradesChronological(trades);
   let longestWin = 0, longestLoss = 0, curW = 0, curL = 0;
   for (const t of chrono) {
     const p = getTradePnL(t);
@@ -370,7 +349,7 @@ function computeStats(trades) {
   const daysSet = new Set();
   const dayPnL = {};
   for (const t of trades) {
-    const d = getTradeDate(t);
+    const d = getTradeResultDate(t);
     if (!d) continue;
     const key = formatDateShort(d);
     daysSet.add(key);
@@ -392,7 +371,7 @@ function computeStats(trades) {
 function buildWeeklySummary(trades) {
   const weeks = {};
   for (const t of trades) {
-    const d = getTradeDate(t);
+    const d = getTradeResultDate(t);
     if (!d) continue;
     const weekStart = new Date(d);
     weekStart.setDate(d.getDate() - d.getDay());

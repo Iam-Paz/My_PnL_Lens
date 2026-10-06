@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { MessageCircle, Send, CircleCheck, CircleX } from 'lucide-react';
+import { STORAGE_KEYS } from '../utils/storageKeys.js';
 
 // Your live Formspree endpoint
 const FORMSPREE_URL = 'https://formspree.io/f/mnpqgjnd';
@@ -23,14 +24,16 @@ export default function Feedback() {
 
   const [status, setStatus] = useState('idle'); // idle | sending | success | error
 
-  // Local copy of what this user has sent so they can track their tickets
+  // Local copy of what this user has sent so they can track their tickets.
+  // Uses the shared key (not the legacy tradersstack_* one) so the startup
+  // migration can't sweep these away on reload.
   const [myTickets, setMyTickets] = useState(() => {
-    const saved = localStorage.getItem('tradersstack_my_tickets');
+    const saved = localStorage.getItem(STORAGE_KEYS.myTickets);
     return saved ? JSON.parse(saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('tradersstack_my_tickets', JSON.stringify(myTickets));
+    localStorage.setItem(STORAGE_KEYS.myTickets, JSON.stringify(myTickets));
   }, [myTickets]);
 
   const handleChange = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));

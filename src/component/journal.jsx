@@ -55,10 +55,16 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
     reader.onload=(e)=>parseCSV(e.target.result,file.name);
     reader.readAsText(file); event.target.value='';
   };
+  // Quick Import with the same duplicate protection as the Imports page:
+  // rows whose ticket already exists are skipped and reported, never doubled.
   const parseCSV=(csvText,filename)=>{
     try{
-      const newTrades=parseCSVToTrades(csvText);
-      if(newTrades.length>0){ setTrades(prev=>[...newTrades,...prev]); if(logActivity) logActivity('import',filename,newTrades.length); alert(`Successfully imported ${newTrades.length} trades!`); }
+      const parsed=parseCSVToTrades(csvText);
+      const existingTickets=new Set(trades.map(t=>String(t.brokerId||t.ticket||t.id||'')).filter(Boolean));
+      const fresh=[]; let dupes=0;
+      for(const t of parsed){ const ticket=String(t.brokerId||t.ticket||''); if(ticket&&existingTickets.has(ticket)){ dupes++; continue; } if(ticket) existingTickets.add(ticket); fresh.push(t); }
+      if(fresh.length>0){ setTrades(prev=>[...fresh,...prev]); if(logActivity) logActivity('import',filename,fresh.length); alert(`Successfully imported ${fresh.length} trades!${dupes>0?` (${dupes} duplicates skipped.)`:''}`); }
+      else if(dupes>0) alert(`No new trades — all ${dupes} rows were duplicates of trades you already have.`);
       else alert('Could not parse trades. Please check the CSV format.');
     }catch(err){ console.error(err); alert('Error parsing CSV file.'); }
   };

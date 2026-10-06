@@ -12,6 +12,7 @@ import {
   calculateSessionStats,
   calculateRMultipleStats,
 } from '../utils/tradeStats';
+import { filterTradesByPeriod, getTradeResultDate, formatDateShort } from '../utils/dateUtils';
 import EmotionAnalysis from './EmotionAnalysis';
 import RuleAdherence from './RuleAdherence';
 import PeriodComparison from './PeriodComparison';
@@ -31,43 +32,8 @@ const MONTH_NAMES = [
 ];
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-function parseTradeDate(str) {
-  if (!str) return null;
-  const raw = String(str).trim();
-  let d = new Date(raw);
-  if (!isNaN(d.getTime())) return d;
-  const normalized = raw.replace(/\./g, '-').replace(' ', 'T');
-  d = new Date(normalized);
-  if (!isNaN(d.getTime())) return d;
-  const datePart = raw.split(/[\sT]/)[0].replace(/\./g, '-');
-  d = new Date(datePart);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function tradeTime(t) {
-  return parseTradeDate(t.closeTime || t.openTime || t.closeAt || t.openAt);
-}
-
-function ymd(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function filterByPeriod(trades, period) {
-  if (period === 'all') return trades;
-  const now = new Date();
-  now.setHours(23, 59, 59, 999);
-  let start = new Date(now);
-  if (period === 'today') start.setHours(0, 0, 0, 0);
-  else if (period === '7d') { start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); }
-  else if (period === '30d') { start.setDate(start.getDate() - 29); start.setHours(0, 0, 0, 0); }
-  else if (period === '60d') { start.setDate(start.getDate() - 59); start.setHours(0, 0, 0, 0); }
-  else if (period === '90d') { start.setDate(start.getDate() - 89); start.setHours(0, 0, 0, 0); }
-  else if (period === 'month') start = new Date(now.getFullYear(), now.getMonth(), 1);
-  return trades.filter((t) => {
-    const d = tradeTime(t);
-    return d && d >= start && d <= now;
-  });
-}
+// NOTE: period filtering + result-date logic live in dateUtils.js (shared with
+// Dashboard & Share Card) so every page scopes the same trades for a period.
 
 export default function Analytics({ trades = [], playbooks = [], settings }) {
   const cfg = settings || { startingBalance: 10000, currency: 'USD', brokerUtcOffset: 2 };
@@ -86,7 +52,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
     setCalMonth(latestYM.month);
   }, [latestYM.year, latestYM.month]);
 
-  const scoped = useMemo(() => filterByPeriod(trades, period), [trades, period]);
+  const scoped = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
 
   const overview = useMemo(() => computeOverview(scoped), [scoped]);
   const drawdown = useMemo(
@@ -669,21 +635,21 @@ function computeOverview(trades) {
 }
 
 function buildCumulative(trades) {
-  const sorted = [...trades].sort((a, b) => (tradeTime(a)?.getTime() || 0) - (tradeTime(b)?.getTime() || 0));
+  const sorted = [...trades].sort((a, b) => (getTradeResultDate(a)?.getTime() || 0) - (getTradeResultDate(b)?.getTime() || 0));
   let cum = 0;
   return sorted.map((t, i) => {
     cum += Number(t.profit ?? t.pnl) || 0;
-    const d = tradeTime(t);
-    return { date: d ? ymd(d) : `#${i + 1}`, cumulative: Number(cum.toFixed(2)) };
+    const d = getTradeResultDate(t);
+    return { date: d ? formatDateShort(d) : `#${i + 1}`, cumulative: Number(cum.toFixed(2)) };
   });
 }
 
 function buildDaily(trades) {
   const m = {};
   for (const t of trades) {
-    const d = tradeTime(t);
+    const d = getTradeResultDate(t);
     if (!d) continue;
-    const k = ymd(d);
+    const k = formatDateShort(d);
     if (!m[k]) m[k] = { pnl: 0, count: 0 };
     m[k].pnl += Number(t.profit ?? t.pnl) || 0;
     m[k].count += 1;
@@ -751,10 +717,10 @@ function buildBuySell(trades) {
 }
 
 function buildDow(trades) {
-  const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const names = ['Sun', 'Mon', 'Tue', 'Thu', 'Fri', 'Sat'];
   const arr = names.map((n) => ({ day: n, count: 0, pnl: 0, wins: 0 }));
   for (const t of trades) {
-    const d = tradeTime(t);
+    const d = getTradeResultDate(t);
     if (!d) continue;
     const idx = d.getDay();
     arr[idx].count += 1;
@@ -774,7 +740,7 @@ function buildDow(trades) {
 function buildMonthly(trades) {
   const m = {};
   for (const t of trades) {
-    const d = tradeTime(t);
+    const d = getTradeResultDate(t);
     if (!d) continue;
     const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     if (!m[k]) m[k] = { pnl: 0, count: 0, wins: 0 };

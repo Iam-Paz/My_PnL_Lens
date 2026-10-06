@@ -65,43 +65,57 @@ export function formatDateShort(dateVal) {
   return `${y}-${m}-${day}`;
 }
 
-export function filterTradesByPeriod(trades = [], period = 'All Time') {
-  if (!Array.isArray(trades) || period === 'All Time' || period === 'all') return trades;
+/**
+ * The date a trade's RESULT belongs to: close time first (that's when P&L is
+ * realized), falling back to open time, then plain date.
+ *
+ * Every period filter, calendar bucket, and equity/streak ordering in the app
+ * goes through this one function, so "30D" always means the same trades on
+ * the Dashboard, Analytics, and Share Card.
+ */
+export function getTradeResultDate(trade) {
+  if (!trade) return null;
+  return toDate(
+    trade.closeAt || trade.closeTime || trade.openAt || trade.openTime || trade.date
+  );
+}
+
+// Accepts both short ids ('7d') and legacy labels ('7 days').
+const PERIOD_ALIASES = {
+  'today': 'today',
+  '7 days': '7d',
+  '30 days': '30d',
+  '60 days': '60d',
+  '90 days': '90d',
+  'this month': 'month',
+  'all time': 'all',
+};
+
+/**
+ * The ONE period filter for the whole app (Dashboard, Analytics, Share Card).
+ * Calendar-day boundaries on the result date — same rules on every page.
+ */
+export function filterTradesByPeriod(trades = [], period = 'all') {
+  if (!Array.isArray(trades)) return [];
+  const raw = String(period).toLowerCase();
+  const key = PERIOD_ALIASES[raw] || raw;
+  if (key === 'all') return trades;
 
   const now = new Date();
   now.setHours(23, 59, 59, 999);
+  let start = new Date(now);
 
-  return trades.filter((trade) => {
-    const tradeDate = toDate(trade.openAt || trade.openTime || trade.date);
-    if (!tradeDate) return false;
+  if (key === 'today') start.setHours(0, 0, 0, 0);
+  else if (key === '7d') { start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); }
+  else if (key === '30d') { start.setDate(start.getDate() - 29); start.setHours(0, 0, 0, 0); }
+  else if (key === '60d') { start.setDate(start.getDate() - 59); start.setHours(0, 0, 0, 0); }
+  else if (key === '90d') { start.setDate(start.getDate() - 89); start.setHours(0, 0, 0, 0); }
+  else if (key === 'month') start = new Date(now.getFullYear(), now.getMonth(), 1);
+  else return trades; // unknown period id → don't filter rather than hide everything
 
-    const diffInDays = (now - tradeDate) / (1000 * 60 * 60 * 24);
-
-    switch (period) {
-      case 'Today':
-      case 'today':
-        return tradeDate.toDateString() === now.toDateString();
-      case '7 days':
-      case '7d':
-        return diffInDays <= 7 && diffInDays >= 0;
-      case '30 days':
-      case '30d':
-        return diffInDays <= 30 && diffInDays >= 0;
-      case '60 days':
-      case '60d':
-        return diffInDays <= 60 && diffInDays >= 0;
-      case '90 days':
-      case '90d':
-        return diffInDays <= 90 && diffInDays >= 0;
-      case 'This Month':
-      case 'month':
-        return (
-          tradeDate.getMonth() === now.getMonth() &&
-          tradeDate.getFullYear() === now.getFullYear()
-        );
-      default:
-        return true;
-    }
+  return trades.filter((t) => {
+    const d = getTradeResultDate(t);
+    return d && d >= start && d <= now;
   });
 }
 
