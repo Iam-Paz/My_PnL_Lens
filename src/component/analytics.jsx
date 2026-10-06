@@ -717,7 +717,7 @@ function buildBuySell(trades) {
 }
 
 function buildDow(trades) {
-  const names = ['Sun', 'Mon', 'Tue', 'Thu', 'Fri', 'Sat'];
+  const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const arr = names.map((n) => ({ day: n, count: 0, pnl: 0, wins: 0 }));
   for (const t of trades) {
     const d = getTradeResultDate(t);
