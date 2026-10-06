@@ -1,275 +1,195 @@
-/* 1. FONTS */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap');
+/* My_PnL_Lens — TradeSeer-inspired theme.
+   Kept in ONE file: tokens, base, components, utilities, responsive rules. */
 
-/* 2. DESIGN TOKENS */
-:root {
-  --bg-main: #0b0e14;
-  --bg-surface: #141822;
-  --bg-surface-hover: #1c2230;
-  --bg-card: #181c27;
-  --border-color: #232836;
-  --border-focus: #2962ff;
-  --text-primary: #e0e6ed;
-  --text-secondary: #788296;
-  --text-muted: #4a5468;
-  --text-bright: #ffffff;
+/* 1. FONT IMPORTS (must be first in the file) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@600;700;800&display=swap');
+
+/* 2. DESIGN TOKENS — DARK (default) */
+:root,
+.theme-dark {
+  --bg-main: #0a0e14;
+  --bg-surface: #11161d;
+  --bg-surface-hover: #1a212b;
+  --bg-overlay: rgba(10, 14, 20, 0.72);
+  --border-color: #1f2937;
+  --text-bright: #e6edf3;
+  --text-primary: #c9d4e0;
+  --text-secondary: #8b949e;
   --accent-blue: #2962ff;
-  --accent-blue-hover: #1e52e0;
-  --color-win: #00e676;
-  --color-win-bg: rgba(0, 230, 118, 0.1);
-  --color-loss: #ff5252;
-  --color-loss-bg: rgba(255, 82, 82, 0.1);
-  --color-buy: #0088cc;
-  --color-sell: #e53935;
-  --color-sky: #38bdf8;
-  --color-rose: #f87171;
-  --color-purple: #a78bfa;
-  --color-amber-text: #f59e0b;
-  --color-gold: #facc15;
-  --table-head-bg: #121620;
-  --scrollbar-thumb: #2a3142;
-  --scrollbar-thumb-hover: #3a445a;
-  --card-hover-border: #2e3648;
-  --ghost-hover-border: #323b4e;
-  --nav-active: #60a5fa;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --font-brand: 'Space Grotesk', 'Inter', sans-serif;
-  --sidebar-width: 250px;
+  --accent-blue-hover: #1e4fd1;
+  --nav-active-bg: rgba(41, 98, 255, 0.15);
+  --nav-active-text: #6ea8ff;
+  --ghost-hover-bg: rgba(255, 255, 255, 0.06);
+  --ghost-hover-border: #4a5568;
+  --color-green: #22c55e;
+  --color-green-bg: rgba(34, 197, 94, 0.12);
+  --color-red: #ef4444;
+  --color-red-bg: rgba(239, 68, 68, 0.12);
+  --color-amber-text: #fbbf24;
+  --color-amber-bg: rgba(251, 191, 36, 0.12);
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --font-brand: 'Sora', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --sidebar-width: 260px;
+  --radius-card: 12px;
+  --radius-input: 8px;
 }
 
-/* 2b. THEME SKINS — Dark is the :root default above; each skin below only
-   overrides what changes and inherits the rest. Applied via
-   <html data-theme="..."> (see themeConfig.js + App.jsx). */
-[data-theme='light'] {
-  --bg-main: #eef1f6;
+/* 3. DESIGN TOKENS — LIGHT */
+.theme-light {
+  --bg-main: #f1f5f9;
   --bg-surface: #ffffff;
-  --bg-surface-hover: #f1f5f9;
-  --bg-card: #ffffff;
-  --border-color: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --bg-surface-hover: #e8eef5;
+  --bg-overlay: rgba(241, 245, 249, 0.75);
+  --border-color: #d7e0ea;
   --text-bright: #0f172a;
-  --color-win: #16a34a;
-  --color-win-bg: rgba(22, 163, 74, 0.1);
-  --color-loss: #dc2626;
-  --color-loss-bg: rgba(220, 38, 38, 0.08);
-  --color-buy: #0284c7;
-  --color-sell: #dc2626;
-  --color-sky: #0284c7;
-  --color-rose: #dc2626;
-  --color-purple: #7c3aed;
+  --text-primary: #334155;
+  --text-secondary: #64748b;
+  --nav-active-bg: rgba(41, 98, 255, 0.12);
+  --nav-active-text: #1d4ed8;
+  --ghost-hover-bg: rgba(15, 23, 42, 0.05);
+  --ghost-hover-border: #94a3b8;
+  --color-green-bg: rgba(34, 197, 94, 0.14);
+  --color-red-bg: rgba(239, 68, 68, 0.1);
   --color-amber-text: #b45309;
-  --color-gold: #a16207;
-  --table-head-bg: #f1f5f9;
-  --scrollbar-thumb: #cbd5e1;
-  --scrollbar-thumb-hover: #94a3b8;
-  --card-hover-border: #cbd5e1;
-  --ghost-hover-border: #cbd5e1;
-  --nav-active: #1d4ed8;
+  --color-amber-bg: rgba(180, 83, 9, 0.12);
+  --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.1);
 }
 
-[data-theme='pnl-profit'] {
-  --bg-main: #07130d;
-  --bg-surface: #0c1f14;
-  --bg-surface-hover: #122a1c;
-  --bg-card: #0a1a11;
-  --border-color: #173a24;
-  --table-head-bg: #08170f;
-  --scrollbar-thumb: #1d4a2b;
-  --scrollbar-thumb-hover: #2a6540;
-  --card-hover-border: #1d4a2b;
-  --ghost-hover-border: #245433;
-}
-
-[data-theme='pnl-loss'] {
-  --bg-main: #150b0b;
-  --bg-surface: #220f0f;
-  --bg-surface-hover: #2c1414;
-  --bg-card: #1c0d0d;
-  --border-color: #451b1b;
-  --table-head-bg: #180c0c;
-  --scrollbar-thumb: #5a2323;
-  --scrollbar-thumb-hover: #7a2e2e;
-  --card-hover-border: #5a2323;
-  --ghost-hover-border: #5e2626;
-}
-
-/* 3. GLOBAL RESET */
-*, *::before, *::after {
-  box-sizing: border-box;
+/* 4. BASE RESET */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
   margin: 0;
   padding: 0;
-}
-
-html {
-  font-size: 16px;
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
   background-color: var(--bg-main);
   color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 14px;
-  line-height: 1.5;
+  font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
+button { font-family: inherit; }
 
-/* 4. CUSTOM SCROLLBAR */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-main); }
-::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
-
-/* 5. UTILITY CLASSES */
-.number-font {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
-
+/* 5. LAYOUT PRIMITIVES */
 .ts-card {
-  background: var(--bg-card);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
-.ts-card:hover {
-  border-color: var(--card-hover-border);
-}
+.page-wrap { display: flex; flex-direction: column; gap: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-center { display: flex; align-items: center; justify-content: center; }
 
-/* 6. BUTTONS */
-.ts-btn {
-  font-family: var(--font-ui);
-  font-size: 13px;
-  font-weight: 600;
-  padding: 9px 16px;
-  border-radius: var(--radius-sm);
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-.ts-btn-primary { background-color: var(--accent-blue); color: #fff; }
-.ts-btn-primary:hover { background-color: var(--accent-blue-hover); box-shadow: 0 4px 12px rgba(41, 98, 255, 0.3); }
-.ts-btn-success { background-color: #10b981; color: #fff; }
-.ts-btn-success:hover { background-color: #059669; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
-.ts-btn-danger { background-color: #ef4444; color: #fff; }
-.ts-btn-danger:hover { background-color: #dc2626; }
-.ts-btn-ghost { background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); }
-.ts-btn-ghost:hover { background-color: var(--bg-surface-hover); border-color: var(--ghost-hover-border); }
-
-/* 7. INPUTS */
-.ts-input {
+/* 6. FORM CONTROLS */
+.ts-input, .ts-select, select.ts-input {
   width: 100%;
-  padding: 10px 14px;
   background-color: var(--bg-main);
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  color: var(--text-primary);
-  font-family: var(--font-ui);
-  font-size: 13px;
+  border-radius: var(--radius-input);
+  color: var(--text-bright);
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: inherit;
   outline: none;
   transition: border-color 0.15s ease;
 }
-.ts-input:focus {
+.ts-input:focus, .ts-select:focus, select.ts-input:focus {
   border-color: var(--accent-blue);
-  box-shadow: 0 0 0 2px rgba(41, 98, 255, 0.15);
 }
-
-/* 8. TABLES */
-.ts-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  font-size: 13px;
-}
-.ts-table th {
-  background-color: var(--table-head-bg);
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color);
-  white-space: nowrap;
-}
-.ts-table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--border-color);
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-.ts-table tbody tr {
-  transition: background-color 0.15s ease;
-}
-.ts-table tbody tr:hover {
-  background-color: var(--bg-surface-hover);
-}
-
-/* 9. BADGES */
-.badge-buy {
-  background-color: rgba(0, 136, 204, 0.15);
-  color: var(--color-sky);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-.badge-sell {
-  background-color: rgba(229, 57, 53, 0.15);
-  color: var(--color-rose);
-  border: 1px solid rgba(248, 113, 113, 0.3);
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-/* 10. SIDEBAR TOGGLE + SLIDE-OVER SIDEBAR (all screen sizes) */
-.sidebar-toggle-btn {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  z-index: 1100;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  color: var(--text-bright);
-  padding: 9px 10px;
+.ts-input::placeholder { color: var(--text-secondary); }
+.ts-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border-radius: var(--radius-input);
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 600;
   cursor: pointer;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border: 1px solid transparent;
   transition: background-color 0.15s ease, border-color 0.15s ease;
 }
-.sidebar-toggle-btn:hover {
-  background: var(--bg-surface-hover);
-  border-color: var(--ghost-hover-border);
+.ts-btn-primary { background-color: var(--accent-blue); color: #fff; }
+.ts-btn-primary:hover { background-color: var(--accent-blue-hover); }
+.ts-btn-ghost {
+  background-color: transparent;
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+.ts-btn-ghost:hover { background-color: var(--ghost-hover-bg); border-color: var(--ghost-hover-border); }
+.ts-btn-danger { background-color: var(--color-red-bg); color: var(--color-red); border-color: transparent; }
+
+/* 7. DATA DISPLAY */
+.ts-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.ts-table thead th {
+  text-align: left;
+  font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  white-space: nowrap;
+}
+.ts-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+.ts-table tbody tr:last-child td { border-bottom: none; }
+.ts-table tbody tr:hover { background-color: var(--ghost-hover-bg); }
+.number-font { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.positive { color: var(--color-green); }
+.negative { color: var(--color-red); }
+
+/* 8. CAPITALIZE-NAMES MODE (Settings toggle) */
+.capitalize-names .ts-table tbody td:first-child,
+.capitalize-names .sidebar-footer,
+.capitalize-names select.ts-input {
+  text-transform: capitalize;
 }
 
-/* Close button inside the panel header (logo row, right side). Same panel-icon
-   family as the floating open button — arrow points back into the panel. */
+/* 9. BADGES / PILLS */
+.ts-badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.ts-badge-green { background-color: var(--color-green-bg); color: var(--color-green); }
+.ts-badge-red { background-color: var(--color-red-bg); color: var(--color-red); }
+.ts-badge-amber { background-color: var(--color-amber-bg); color: var(--color-amber-text); }
+.ts-badge-blue { background-color: var(--nav-active-bg); color: var(--nav-active-text); }
+.ts-badge-gray { background-color: var(--ghost-hover-bg); color: var(--text-secondary); }
+
+/* 10. RESPONSIVE NAV SHELL — pinned desktop sidebar + mobile chrome.
+   Desktop (>768px): the sidebar is a fixed panel that is ALWAYS visible.
+   .app-shell reserves its width via padding-left so content never slides
+   underneath; .nav-collapsed narrows that reservation to the 76px rail.
+   Phones (<=768px): the sidebar hides entirely and the mobile header,
+   bottom tab bar, and More sheet take over (see queries below). */
+.app-shell { padding-left: var(--sidebar-width); }
+.app-shell.nav-collapsed { --sidebar-width: 76px; }
+aside.ts-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: var(--sidebar-width);
+  z-index: 1050;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: width 0.22s ease;
+}
+/* Collapse toggle inside the expanded panel header (logo row, right side). */
 .sidebar-close-btn {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 8px;
   color: var(--text-secondary);
-  padding: 8px;
+  padding: 7px;
   cursor: pointer;
   line-height: 1;
   display: flex;
@@ -279,93 +199,188 @@ body {
   transition: background-color 0.15s ease, color 0.15s ease;
 }
 .sidebar-close-btn:hover {
-  background: var(--bg-surface-hover);
+  background: var(--ghost-hover-bg);
   color: var(--text-bright);
 }
-
-.sidebar-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  z-index: 1049;
+/* Icon-rail buttons (collapsed sidebar): page icons, expand toggle, love link. */
+.rail-icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
-.sidebar-overlay.visible { display: block; }
-
-/* The sidebar is a hidden-by-default slide-over panel on ALL screen sizes
-   (desktop behaves exactly like mobile). There is no collapse mode anymore:
-   the panel is either fully open or fully closed, so the stuck icons-only
-   state is impossible on every device. */
-aside.ts-sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-  width: var(--sidebar-width);
-  z-index: 1050;
-  transform: translateX(-110%);
-  transition: transform 0.25s ease;
-  overflow-y: auto;
+button.rail-icon-btn:hover, a.rail-icon-btn:hover {
+  background: var(--ghost-hover-bg);
+  color: var(--text-bright);
 }
-aside.ts-sidebar.open { transform: translateX(0); }
+/* Mobile chrome is display:none on desktop — the queries below reveal it. */
+.mobile-header, .mobile-tabbar, .more-backdrop { display: none; }
 
-/* 11. RESPONSIVE BREAKPOINTS */
+/* 11. HERO PnL WASH (dashboard + analytics heroes read the session PnL) */
+.hero-wash { position: relative; overflow: hidden; }
+.hero-wash::before {
+  content: '';
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: var(--hero-wash, none);
+}
 
-/* Tablet: ≤ 1024px */
+/* 12. TABLET (<=1024px) — sidebar keeps its 220px panel width; the shell
+   reservation follows automatically since both read --sidebar-width. */
 @media (max-width: 1024px) {
-  :root {
-    --sidebar-width: 220px;
-  }
-  main.ts-main { padding-left: 24px !important; padding-right: 24px !important; padding-top: 64px !important; }
-  .metric-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important; }
-  .analytics-grid-2col { grid-template-columns: 1fr !important; }
-  .dashboard-grid { grid-template-columns: 1fr !important; }
-  .playbook-grid { grid-template-columns: 1fr !important; }
-  .edge-table-wrapper { font-size: 12px; }
-  .journal-btn-group { flex-wrap: wrap; }
+  :root, .theme-dark, .theme-light { --sidebar-width: 220px; }
+  .app-shell.nav-collapsed { --sidebar-width: 76px; }
+  main.ts-main { padding-left: 24px !important; padding-right: 24px !important; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .grid-3 { grid-template-columns: 1fr 1fr; }
 }
 
-/* Mobile: ≤ 768px */
+/* 13. PHONES (<=768px) — pinned sidebar off; slim fixed header, bottom tab
+   bar, and More bottom sheet on. Content padded clear of both fixed bars. */
 @media (max-width: 768px) {
-  html { font-size: 14px; }
-  main.ts-main { padding: 56px 12px 24px 12px !important; }
-  .ts-card { padding: 14px; }
-  .metric-grid { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
-  .stat-single { grid-column: span 2; }
-  .filter-bar { flex-direction: column !important; }
-  .filter-bar .ts-input, .filter-bar select { width: 100% !important; min-width: auto !important; }
-  .header-bar { flex-direction: column !important; align-items: flex-start !important; gap: 12px !important; }
-  .header-bar .journal-btn-group { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
-  .ts-btn { padding: 8px 12px; font-size: 12px; }
-  .modal-mobile { width: 100% !important; max-width: 100% !important; height: 100vh; max-height: 100vh; border-radius: 0 !important; padding: 16px !important; overflow-y: auto; }
-  .modal-mobile-grid { grid-template-columns: 1fr !important; }
-  .calendar-day { min-height: 52px !important; padding: 4px !important; font-size: 11px; }
-  .calendar-header { gap: 4px !important; }
-  .table-scroll-hint { display: block; }
-  .period-filters { gap: 4px !important; }
-  .period-filters .ts-btn { padding: 6px 8px; font-size: 11px; }
-  .playbook-grid { grid-template-columns: 1fr !important; }
-  .emotion-grid { gap: 4px !important; }
-  .emotion-grid .ts-btn { padding: 4px 8px; font-size: 11px; }
-  .section-title-row { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; }
-  .risk-grid { grid-template-columns: 1fr !important; }
-  .weekly-grid { grid-template-columns: 1fr !important; }
-  .support-grid { grid-template-columns: 1fr !important; }
-  .chart-container { height: 220px !important; }
-  .chart-container-lg { height: 260px !important; }
+  .app-shell, .app-shell.nav-collapsed { padding-left: 0; --sidebar-width: 260px; }
+  aside.ts-sidebar { display: none; }
+  main.ts-main { padding: 68px 12px 100px 12px !important; }
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1060;
+    padding: 10px 12px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-color);
+  }
+  .mobile-brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .mobile-logo {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 13px; color: #fff;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(41, 98, 255, 0.4);
+  }
+  .mobile-nickname {
+    font-size: 13px; font-weight: 700; color: var(--text-bright);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  select.ts-input.mobile-account-select {
+    width: auto;
+    max-width: 52vw;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 7px 8px;
+    flex-shrink: 0;
+  }
+  .mobile-tabbar {
+    display: flex;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    z-index: 1060;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-color);
+    padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+  }
+  .mobile-tab {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: var(--text-secondary);
+    font-size: 10px; font-weight: 600;
+    padding: 6px 2px;
+    cursor: pointer;
+    transition: color 0.15s ease;
+  }
+  .mobile-tab.active { color: var(--nav-active-text); }
+  .more-backdrop {
+    display: block;
+    position: fixed; inset: 0;
+    z-index: 1070;
+    background: var(--bg-overlay);
+  }
+  .more-sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: var(--bg-surface);
+    border-top: 1px solid var(--border-color);
+    border-radius: 16px 16px 0 0;
+    padding: 8px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+    display: flex; flex-direction: column; gap: 2px;
+    animation: sheetUp 0.22s ease;
+  }
+  @keyframes sheetUp {
+    from { transform: translateY(40px); opacity: 0.5; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .more-grabber {
+    width: 40px; height: 4px;
+    border-radius: 999px;
+    background: var(--border-color);
+    margin: 4px auto 10px;
+  }
+  .more-entry {
+    display: flex; align-items: center; gap: 12px;
+    background: transparent;
+    border: none;
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-size: 14px; font-weight: 600;
+    padding: 12px 10px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+  .more-entry.active {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-text);
+  }
+  .more-love {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-top: 10px;
+    padding: 11px;
+    border-radius: 10px;
+    background-color: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: var(--color-amber-text);
+    font-size: 13px; font-weight: 700;
+    text-decoration: none;
+  }
+  .more-close {
+    position: absolute;
+    top: 10px; right: 12px;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: var(--text-secondary);
+    padding: 8px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .desktop-only { display: none !important; }
+  .filter-bar { flex-wrap: wrap; }
+  .filter-bar .ts-input, .filter-bar .ts-select { width: 100%; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
-/* Small Mobile: ≤ 480px */
+/* 14. SMALL PHONES (<=480px) */
 @media (max-width: 480px) {
-  main.ts-main { padding: 56px 10px 20px 10px !important; }
-  .metric-grid { grid-template-columns: 1fr !important; }
-  .stat-single { grid-column: span 1; }
-  .ts-card { padding: 12px; border-radius: 8px; }
-  .sidebar-toggle-btn { top: 12px; left: 12px; padding: 7px 8px; }
-  .ts-table { font-size: 12px; }
-  .ts-table th { padding: 10px 12px; font-size: 10px; }
-  .ts-table td { padding: 10px 12px; }
-  .support-name-email-grid { grid-template-columns: 1fr !important; }
+  main.ts-main { padding: 68px 10px 96px 10px !important; }
+  .ts-table thead th, .ts-table tbody td { padding: 8px; font-size: 12px; }
+  .mobile-tab { font-size: 9px; }
 }
 
 /* TABLE COLUMN ALIGNMENT FIX */
