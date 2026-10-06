@@ -80,15 +80,17 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   };
   const handleFormSubmit=(e)=>{
     e.preventDefault(); const id=String(Date.now()); const open=formData.openTime; const dir=normalizeType(formData.type);
-    const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:'', symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], screenshot:null };
+    const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:'', symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null };
     setTrades([newTrade,...trades]); setIsModalOpen(false);
     setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', setup:'Untagged', notes:'', openTime:new Date().toISOString().slice(0,10) });
   };
-  const handleTagChange=(id,newSetup)=>setTrades(trades.map(t=>t.id===id?{...t,setup:newSetup}:t));
+  // Retagging clears rule ticks — they belong to the previous playbook's rule set.
+  const handleTagChange=(id,newSetup)=>setTrades(trades.map(t=>t.id===id?{...t,setup:newSetup,rulesChecked:[]}:t));
   const handleDeleteTrade=(id)=>{ if(confirm('Delete trade?')) setTrades(trades.filter(t=>t.id!==id)); };
-  const handleOpenDetail=(trade)=>{ setEditingTrade({ ...trade, emotions:trade.emotions||[], notes:trade.notes||'', screenshot:trade.screenshot||null, openTime:getOpenTime(trade), closeTime:getCloseTime(trade), type:getDirection(trade), volume:getVolume(trade), profit:getTradePnL(trade), stopLoss:trade.stopLoss??'', takeProfit:trade.takeProfit??'', commission:trade.commission??0, swap:trade.swap??0, ticket:getTicket(trade) }); setIsDetailOpen(true); };
+  const handleOpenDetail=(trade)=>{ setEditingTrade({ ...trade, emotions:trade.emotions||[], notes:trade.notes||'', rulesChecked:trade.rulesChecked||[], screenshot:trade.screenshot||null, openTime:getOpenTime(trade), closeTime:getCloseTime(trade), type:getDirection(trade), volume:getVolume(trade), profit:getTradePnL(trade), stopLoss:trade.stopLoss??'', takeProfit:trade.takeProfit??'', commission:trade.commission??0, swap:trade.swap??0, ticket:getTicket(trade) }); setIsDetailOpen(true); };
   const handleDetailChange=(key,value)=>setEditingTrade(prev=>({...prev,[key]:value}));
   const toggleEmotion=(emo)=>setEditingTrade(prev=>{ const cur=prev.emotions||[]; return {...prev, emotions: cur.includes(emo)?cur.filter(e=>e!==emo):[...cur,emo]}; });
+  const toggleRule=(rule)=>setEditingTrade(prev=>{ const cur=Array.isArray(prev.rulesChecked)?prev.rulesChecked:[]; return {...prev, rulesChecked: cur.includes(rule)?cur.filter(r=>r!==rule):[...cur,rule]}; });
   const handleScreenshotUpload=(e)=>{ const file=e.target.files[0]; if(!file) return; if(file.size>1.5*1024*1024) return alert('Image too large. Keep screenshots under 1.5MB.'); const reader=new FileReader(); reader.onload=(ev)=>setEditingTrade(prev=>({...prev,screenshot:ev.target.result})); reader.readAsDataURL(file); };
   const handleSaveDetail=(e)=>{ e.preventDefault(); if(!editingTrade) return; const dir=normalizeType(editingTrade.type); const net=cleanNumber(editingTrade.profit); const updated={ ...editingTrade, id:editingTrade.id, brokerId:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, ticket:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, openTime:editingTrade.openTime, openAt:editingTrade.openTime, closeAt:editingTrade.closeTime||editingTrade.closeAt||'', closeTime:editingTrade.closeTime||'', symbol:(editingTrade.symbol||'').toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(editingTrade.volume), size:cleanNumber(editingTrade.volume), entryPrice:cleanNumber(editingTrade.entryPrice), exitPrice:cleanNumber(editingTrade.exitPrice), stopLoss:cleanNumber(editingTrade.stopLoss), takeProfit:cleanNumber(editingTrade.takeProfit), commission:cleanNumber(editingTrade.commission), swap:cleanNumber(editingTrade.swap), profit:net, pnl:net, setup:editingTrade.setup||'Untagged' }; setTrades(trades.map(t=>t.id===updated.id?updated:t)); setIsDetailOpen(false); setEditingTrade(null); };
   const handleDeleteFromDetail=(id)=>{ if(confirm('Delete this trade?')){ setTrades(trades.filter(t=>t.id!==id)); setIsDetailOpen(false); setEditingTrade(null);} };
@@ -108,6 +110,11 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   });
 
   const getOptionsForTrade=(current)=>{ if(!current||setupOptions.includes(current)) return setupOptions; return [...setupOptions,current]; };
+
+  // Rules of the playbook currently selected in the detail modal (empty unless tagged).
+  const detailPlaybook = editingTrade ? playbooks.find(p=>p.title===(editingTrade.setup||'Untagged')) : null;
+  const detailRules = detailPlaybook ? (detailPlaybook.rules||[]).filter(r=>r.trim()!=='') : [];
+  const detailChecked = editingTrade && Array.isArray(editingTrade.rulesChecked) ? editingTrade.rulesChecked : [];
 
   return (
     <div>
@@ -233,8 +240,27 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div><label style={labelStyle}>Commission</label><input type="number" step="any" className="ts-input" value={editingTrade.commission??''} onChange={e=>handleDetailChange('commission',e.target.value)} /></div>
                 <div><label style={labelStyle}>Swap</label><input type="number" step="any" className="ts-input" value={editingTrade.swap??''} onChange={e=>handleDetailChange('swap',e.target.value)} /></div>
                 <div><label style={labelStyle}>Net P&L ($)</label><input type="number" step="any" className="ts-input" value={editingTrade.profit??''} onChange={e=>handleDetailChange('profit',e.target.value)} /></div>
-                <div><label style={labelStyle}>Playbook Setup</label><select className="ts-input" value={editingTrade.setup||'Untagged'} onChange={e=>handleDetailChange('setup',e.target.value)}>{getOptionsForTrade(editingTrade.setup).map(s=><option key={s} value={s}>{s}</option>)}</select></div>
+                <div><label style={labelStyle}>Playbook Setup</label><select className="ts-input" value={editingTrade.setup||'Untagged'} onChange={e=>{handleDetailChange('setup',e.target.value); setEditingTrade(prev=>({...prev,rulesChecked:[]}));}}>{getOptionsForTrade(editingTrade.setup).map(s=><option key={s} value={s}>{s}</option>)}</select></div>
               </div>
+              {detailPlaybook && detailRules.length>0 && (
+                <div style={{marginTop:'16px'}}>
+                  <label style={labelStyle}>Playbook Checklist — tick the rules you followed</label>
+                  <div style={{display:'flex',flexDirection:'column',gap:'8px',backgroundColor:'var(--bg-main)',border:'1px solid var(--border-color)',borderRadius:'8px',padding:'12px'}}>
+                    {detailRules.map(rule=>(
+                      <label key={rule} style={{display:'flex',alignItems:'center',gap:'10px',fontSize:'13px',cursor:'pointer',color:detailChecked.includes(rule)?'var(--text-primary)':'var(--text-secondary)'}}>
+                        <input type="checkbox" checked={detailChecked.includes(rule)} onChange={()=>toggleRule(rule)} style={{width:'16px',height:'16px',accentColor:'#2962ff',cursor:'pointer',flexShrink:0}} />
+                        <span>{rule}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {detailPlaybook && detailRules.length===0 && (
+                <div style={{marginTop:'16px'}}>
+                  <label style={labelStyle}>Playbook Checklist</label>
+                  <p style={{fontSize:'12px',color:'var(--text-muted)',margin:0}}>This playbook has no checklist rules yet — add some on the Playbooks page.</p>
+                </div>
+              )}
               <div style={{marginTop:'16px'}}>
                 <label style={labelStyle}>Emotional State</label>
                 <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
