@@ -27,6 +27,15 @@
   --color-red-bg: rgba(239, 68, 68, 0.12);
   --color-amber-text: #fbbf24;
   --color-amber-bg: rgba(251, 191, 36, 0.12);
+  --text-muted: #6b7280;
+  --color-win: #00e676;
+  --color-win-bg: rgba(0, 230, 118, 0.12);
+  --color-loss: #ff5252;
+  --color-loss-bg: rgba(255, 82, 82, 0.12);
+  --color-rose: #fb7185;
+  --color-sky: #38bdf8;
+  --color-purple: #a78bfa;
+  --color-gold: #eab308;
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.35);
   --font-brand: 'Sora', 'Inter', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
@@ -36,7 +45,8 @@
   --radius-input: 8px;
 }
 
-/* 3. DESIGN TOKENS — LIGHT */
+/* 3. DESIGN TOKENS — LIGHT (applied via <html data-theme="light">) */
+html[data-theme="light"],
 .theme-light {
   --bg-main: #f1f5f9;
   --bg-surface: #ffffff;
@@ -55,6 +65,35 @@
   --color-amber-text: #b45309;
   --color-amber-bg: rgba(180, 83, 9, 0.12);
   --shadow-card: 0 2px 8px rgba(15, 23, 42, 0.1);
+  --text-muted: #94a3b8;
+  --color-win: #16a34a;
+  --color-win-bg: rgba(22, 163, 74, 0.12);
+  --color-loss: #dc2626;
+  --color-loss-bg: rgba(220, 38, 38, 0.1);
+  --color-rose: #e11d48;
+  --color-sky: #0284c7;
+  --color-purple: #7c3aed;
+  --color-gold: #a16207;
+}
+
+/* 3b. P&L SKINS — tinted dark surfaces driven by <html data-theme="...">.
+   Mode->skin resolution lives in themeConfig.js; charts read the same skin
+   through SkinContext (see App.jsx). Text/accent tokens inherit dark. */
+html[data-theme="pnl-profit"] {
+  --bg-main: #0a1410;
+  --bg-surface: #0e1f16;
+  --bg-surface-hover: #14291d;
+  --bg-overlay: rgba(10, 20, 16, 0.75);
+  --border-color: #1e4030;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+html[data-theme="pnl-loss"] {
+  --bg-main: #150c0c;
+  --bg-surface: #200f0f;
+  --bg-surface-hover: #2a1414;
+  --bg-overlay: rgba(21, 12, 12, 0.75);
+  --border-color: #451f1f;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.4);
 }
 
 /* 4. BASE RESET */
@@ -118,6 +157,9 @@ button { font-family: inherit; }
 }
 .ts-btn-ghost:hover { background-color: var(--ghost-hover-bg); border-color: var(--ghost-hover-border); }
 .ts-btn-danger { background-color: var(--color-red-bg); color: var(--color-red); border-color: transparent; }
+.ts-btn-success { background-color: #16a34a; color: #fff; }
+.ts-btn-success:hover { background-color: #15803d; }
+.ts-btn-success:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* 7. DATA DISPLAY */
 .ts-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -163,6 +205,17 @@ button { font-family: inherit; }
 .ts-badge-amber { background-color: var(--color-amber-bg); color: var(--color-amber-text); }
 .ts-badge-blue { background-color: var(--nav-active-bg); color: var(--nav-active-text); }
 .ts-badge-gray { background-color: var(--ghost-hover-bg); color: var(--text-secondary); }
+.badge-buy, .badge-sell {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.badge-buy { background-color: var(--color-win-bg); color: var(--color-win); }
+.badge-sell { background-color: var(--color-loss-bg); color: var(--color-loss); }
 
 /* 10. RESPONSIVE NAV SHELL — pinned desktop sidebar + mobile chrome.
    Desktop (>768px): the sidebar is a fixed panel that is ALWAYS visible.
@@ -248,7 +301,7 @@ button.rail-icon-btn:hover, a.rail-icon-btn:hover {
    bar, and More bottom sheet on. Content padded clear of both fixed bars. */
 @media (max-width: 768px) {
   .app-shell, .app-shell.nav-collapsed { padding-left: 0; --sidebar-width: 260px; }
-  aside.ts-sidebar { display: none; }
+  aside.ts-sidebar { display: none !important; }
   main.ts-main { padding: 68px 12px 100px 12px !important; }
   .mobile-header {
     display: flex;
@@ -373,6 +426,8 @@ button.rail-icon-btn:hover, a.rail-icon-btn:hover {
   .desktop-only { display: none !important; }
   .filter-bar { flex-wrap: wrap; }
   .filter-bar .ts-input, .filter-bar .ts-select { width: 100%; }
+  .support-grid, .support-name-email-grid, .modal-mobile-grid { grid-template-columns: 1fr !important; }
+  .modal-mobile { margin: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
   .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
