@@ -12,6 +12,7 @@
   --text-primary: #e0e6ed;
   --text-secondary: #788296;
   --text-muted: #4a5468;
+  --text-bright: #ffffff;
   --accent-blue: #2962ff;
   --accent-blue-hover: #1e52e0;
   --color-win: #00e676;
@@ -20,6 +21,17 @@
   --color-loss-bg: rgba(255, 82, 82, 0.1);
   --color-buy: #0088cc;
   --color-sell: #e53935;
+  --color-sky: #38bdf8;
+  --color-rose: #f87171;
+  --color-purple: #a78bfa;
+  --color-amber-text: #f59e0b;
+  --color-gold: #facc15;
+  --table-head-bg: #121620;
+  --scrollbar-thumb: #2a3142;
+  --scrollbar-thumb-hover: #3a445a;
+  --card-hover-border: #2e3648;
+  --ghost-hover-border: #323b4e;
+  --nav-active: #60a5fa;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
@@ -27,6 +39,64 @@
   --font-mono: 'JetBrains Mono', monospace;
   --font-brand: 'Space Grotesk', 'Inter', sans-serif;
   --sidebar-width: 250px;
+}
+
+/* 2b. THEME SKINS — Dark is the :root default above; each skin below only
+   overrides what changes and inherits the rest. Applied via
+   <html data-theme="..."> (see themeConfig.js + App.jsx). */
+[data-theme='light'] {
+  --bg-main: #eef1f6;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f5f9;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-bright: #0f172a;
+  --color-win: #16a34a;
+  --color-win-bg: rgba(22, 163, 74, 0.1);
+  --color-loss: #dc2626;
+  --color-loss-bg: rgba(220, 38, 38, 0.08);
+  --color-buy: #0284c7;
+  --color-sell: #dc2626;
+  --color-sky: #0284c7;
+  --color-rose: #dc2626;
+  --color-purple: #7c3aed;
+  --color-amber-text: #b45309;
+  --color-gold: #a16207;
+  --table-head-bg: #f1f5f9;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --card-hover-border: #cbd5e1;
+  --ghost-hover-border: #cbd5e1;
+  --nav-active: #1d4ed8;
+}
+
+[data-theme='pnl-profit'] {
+  --bg-main: #07130d;
+  --bg-surface: #0c1f14;
+  --bg-surface-hover: #122a1c;
+  --bg-card: #0a1a11;
+  --border-color: #173a24;
+  --table-head-bg: #08170f;
+  --scrollbar-thumb: #1d4a2b;
+  --scrollbar-thumb-hover: #2a6540;
+  --card-hover-border: #1d4a2b;
+  --ghost-hover-border: #245433;
+}
+
+[data-theme='pnl-loss'] {
+  --bg-main: #150b0b;
+  --bg-surface: #220f0f;
+  --bg-surface-hover: #2c1414;
+  --bg-card: #1c0d0d;
+  --border-color: #451b1b;
+  --table-head-bg: #180c0c;
+  --scrollbar-thumb: #5a2323;
+  --scrollbar-thumb-hover: #7a2e2e;
+  --card-hover-border: #5a2323;
+  --ghost-hover-border: #5e2626;
 }
 
 /* 3. GLOBAL RESET */
@@ -55,8 +125,8 @@ body {
 /* 4. CUSTOM SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-main); }
-::-webkit-scrollbar-thumb { background: #2a3142; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3a445a; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
 
 /* 5. UTILITY CLASSES */
 .number-font {
@@ -72,7 +142,7 @@ body {
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 .ts-card:hover {
-  border-color: #2e3648;
+  border-color: var(--card-hover-border);
 }
 
 /* 6. BUTTONS */
@@ -97,7 +167,7 @@ body {
 .ts-btn-danger { background-color: #ef4444; color: #fff; }
 .ts-btn-danger:hover { background-color: #dc2626; }
 .ts-btn-ghost { background-color: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color); }
-.ts-btn-ghost:hover { background-color: var(--bg-surface-hover); border-color: #323b4e; }
+.ts-btn-ghost:hover { background-color: var(--bg-surface-hover); border-color: var(--ghost-hover-border); }
 
 /* 7. INPUTS */
 .ts-input {
@@ -125,7 +195,7 @@ body {
   font-size: 13px;
 }
 .ts-table th {
-  background-color: #121620;
+  background-color: var(--table-head-bg);
   color: var(--text-secondary);
   font-weight: 600;
   font-size: 11px;
@@ -151,7 +221,7 @@ body {
 /* 9. BADGES */
 .badge-buy {
   background-color: rgba(0, 136, 204, 0.15);
-  color: #38bdf8;
+  color: var(--color-sky);
   border: 1px solid rgba(56, 189, 248, 0.3);
   font-weight: 700;
   padding: 3px 8px;
@@ -160,7 +230,7 @@ body {
 }
 .badge-sell {
   background-color: rgba(229, 57, 53, 0.15);
-  color: #f87171;
+  color: var(--color-rose);
   border: 1px solid rgba(248, 113, 113, 0.3);
   font-weight: 700;
   padding: 3px 8px;
@@ -177,7 +247,7 @@ body {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: #fff;
+  color: var(--text-bright);
   padding: 9px 10px;
   cursor: pointer;
   line-height: 1;
@@ -189,7 +259,7 @@ body {
 }
 .sidebar-toggle-btn:hover {
   background: var(--bg-surface-hover);
-  border-color: #323b4e;
+  border-color: var(--ghost-hover-border);
 }
 
 /* Close button inside the panel header (logo row, right side). Same panel-icon
@@ -210,7 +280,7 @@ body {
 }
 .sidebar-close-btn:hover {
   background: var(--bg-surface-hover);
-  color: #fff;
+  color: var(--text-bright);
 }
 
 .sidebar-overlay {

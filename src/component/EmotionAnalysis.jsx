@@ -40,7 +40,7 @@ export default function EmotionAnalysis({ trades = [] }) {
         }}
       >
         <div>
-          <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Brain size={18} /> Emotion & Mindset Performance
           </h3>
           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -92,7 +92,7 @@ export default function EmotionAnalysis({ trades = [] }) {
             ) : (
               emotionStats.map((row) => (
                 <tr key={row.emotion}>
-                  <td style={{ fontWeight: 700, color: '#fff' }}>
+                  <td style={{ fontWeight: 700, color: 'var(--text-bright)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>{row.emotion}</span>
                       {row.isLowSample && (
@@ -103,7 +103,7 @@ export default function EmotionAnalysis({ trades = [] }) {
                             padding: '1px 5px',
                             borderRadius: '3px',
                             backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                            color: '#facc15',
+                            color: 'var(--color-gold)',
                             border: '1px solid rgba(234, 179, 8, 0.3)',
                           }}
                         >
@@ -113,7 +113,7 @@ export default function EmotionAnalysis({ trades = [] }) {
                     </div>
                   </td>
                   <td className="number-font">{row.count}</td>
-                  <td className="number-font" style={{ color: '#38bdf8' }}>
+                  <td className="number-font" style={{ color: 'var(--color-sky)' }}>
                     {row.count > 0 ? `${row.winRate}%` : '—'}
                   </td>
                   <td
@@ -131,7 +131,7 @@ export default function EmotionAnalysis({ trades = [] }) {
                   <td className="number-font" style={{ color: 'var(--color-loss)' }}>
                     {row.losses > 0 ? `-$${row.avgLoss.toFixed(2)}` : '—'}
                   </td>
-                  <td className="number-font" style={{ color: row.avgR >= 0 ? '#38bdf8' : 'var(--color-loss)' }}>
+                  <td className="number-font" style={{ color: row.avgR >= 0 ? 'var(--color-sky)' : 'var(--color-loss)' }}>
                     {row.countWithR > 0 ? `${row.avgR > 0 ? '+' : ''}${row.avgR}R` : '—'}
                   </td>
                   <td className="number-font">{row.profitFactor}</td>

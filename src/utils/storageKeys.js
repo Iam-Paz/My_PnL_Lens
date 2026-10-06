@@ -1,5 +1,6 @@
 // Single source of truth for every localStorage key used by My_PnL_Lens.
-// Nothing outside this file should contain a raw 'mypnllens_*' string.
+// Nothing outside this file should contain a raw 'mypnllens_*' string
+// (except the pre-paint theme snippet in index.html, which can't import this).
 
 export const STORAGE_KEYS = {
   accounts: 'mypnllens_accounts',
@@ -11,6 +12,7 @@ export const STORAGE_KEYS = {
   sidebarCollapsed: 'mypnllens_sidebar_collapsed',
   myTickets: 'mypnllens_my_tickets',
   enteredApp: 'mypnllens_entered_app',
+  theme: 'mypnllens_theme',
   // Very old single-account format (kept so old installs still migrate)
   legacyTrades: 'mypnllens_trades',
   legacySettings: 'mypnllens_settings',

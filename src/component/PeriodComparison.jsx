@@ -162,7 +162,7 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
         }}
       >
         <div>
-          <h3 style={{ margin: 0, fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Repeat size={18} /> Period Comparison
           </h3>
           <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -196,8 +196,8 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
           <thead>
             <tr>
               <th>Performance Metric</th>
-              <th style={{ color: '#38bdf8' }}>{periodALabel} (A)</th>
-              <th style={{ color: '#a78bfa' }}>{periodBLabel} (B)</th>
+              <th style={{ color: 'var(--color-sky)' }}>{periodALabel} (A)</th>
+              <th style={{ color: 'var(--color-purple)' }}>{periodBLabel} (B)</th>
               <th>Difference (A vs B)</th>
             </tr>
           </thead>
@@ -222,10 +222,10 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
 
             <tr>
               <td style={{ fontWeight: 600 }}>Win Rate</td>
-              <td className="number-font" style={{ color: '#38bdf8' }}>
+              <td className="number-font" style={{ color: 'var(--color-sky)' }}>
                 {statsA.count > 0 ? `${statsA.winRate}%` : '—'}
               </td>
-              <td className="number-font" style={{ color: '#a78bfa' }}>
+              <td className="number-font" style={{ color: 'var(--color-purple)' }}>
                 {statsB.count > 0 ? `${statsB.winRate}%` : '—'}
               </td>
               <td>

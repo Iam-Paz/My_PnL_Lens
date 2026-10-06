@@ -70,8 +70,8 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
             const Icon = f.icon;
             return (
               <div key={f.title} className="ts-card">
-                <div style={{ marginBottom: '10px' }}><Icon size={28} style={{ color: '#38bdf8' }} /></div>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: '#fff' }}>{f.title}</h3>
+                <div style={{ marginBottom: '10px' }}><Icon size={28} style={{ color: 'var(--color-sky)' }} /></div>
+                <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', color: 'var(--text-bright)' }}>{f.title}</h3>
                 <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{f.text}</p>
               </div>
             );
@@ -90,8 +90,8 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
         </div>
         <div style={writeupGridStyle}>
           <div className="ts-card">
-            <div style={{ marginBottom: '10px' }}><Share2 size={28} style={{ color: '#38bdf8' }} /></div>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: '#fff' }}>Shareable PnL Cards</h3>
+            <div style={{ marginBottom: '10px' }}><Share2 size={28} style={{ color: 'var(--color-sky)' }} /></div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: 'var(--text-bright)' }}>Shareable PnL Cards</h3>
             <p style={writeupTextStyle}>
               Turn any period into a clean, branded image in one click.
               Show your wins on WhatsApp and X without ever exposing your journal.
@@ -103,8 +103,8 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
             </ul>
           </div>
           <div className="ts-card">
-            <div style={{ marginBottom: '10px' }}><Smartphone size={28} style={{ color: '#38bdf8' }} /></div>
-            <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: '#fff' }}>Fully Responsive</h3>
+            <div style={{ marginBottom: '10px' }}><Smartphone size={28} style={{ color: 'var(--color-sky)' }} /></div>
+            <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', color: 'var(--text-bright)' }}>Fully Responsive</h3>
             <p style={writeupTextStyle}>
               The full journal in your pocket. Dashboard, journal and analytics
               adapt to any screen — log a trade upstairs, review it downstairs.
@@ -158,7 +158,7 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
 
       {/* FINAL CTA */}
       <section style={finalCtaStyle}>
-        <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', color: '#fff' }}>Stop guessing. Start knowing.</h2>
+        <h2 style={{ margin: '0 0 10px 0', fontSize: '28px', color: 'var(--text-bright)' }}>Stop guessing. Start knowing.</h2>
         <p style={{ color: 'var(--text-secondary)', margin: '0 0 20px 0' }}>Free forever. No signup. Your edge is waiting.</p>
         <button onClick={onLaunch} className="ts-btn ts-btn-primary" style={ctaPrimaryStyle}>
           {hasData ? <><BookOpen size={16} style={{ verticalAlign: '-3px', marginRight: '8px' }} />Continue Journal ({tradeCount} trades)</> : <><Rocket size={16} style={{ verticalAlign: '-3px', marginRight: '8px' }} />Launch Free Journal</>}
@@ -169,10 +169,10 @@ export default function Landing({ onLaunch, tradeCount = 0 }) {
       <footer style={footerStyle}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{ ...logoBadgeStyle, width: '28px', height: '28px', fontSize: '11px' }}>MY</div>
-          <span style={{ fontWeight: 700, color: '#fff' }}>My_PnL_Lens</span>
+          <span style={{ fontWeight: 700, color: 'var(--text-bright)' }}>My_PnL_Lens</span>
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Built by Paz · Green pips only <TrendingUp size={13} style={{ verticalAlign: '-1px' }} /> <Heart size={13} style={{ verticalAlign: '-1px', color: '#22c55e' }} /></span>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Built by Paz · Green pips only <TrendingUp size={13} style={{ verticalAlign: '-1px' }} /> <Heart size={13} style={{ verticalAlign: '-1px', color: 'var(--color-win)' }} /></span>
           <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" style={footerLinkStyle}><Coffee size={13} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Show Love</a>
         </div>
       </footer>
@@ -193,10 +193,10 @@ const pageStyle = { minHeight: '100vh', backgroundColor: 'var(--bg-main)', color
 const navStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', maxWidth: '1100px', margin: '0 auto' };
 const brandStyle = { display: 'flex', alignItems: 'center', gap: '10px' };
 const logoBadgeStyle = { width: '36px', height: '36px', borderRadius: '8px', backgroundColor: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '14px', color: '#fff', boxShadow: '0 4px 12px rgba(41, 98, 255, 0.4)' };
-const brandNameStyle = { fontFamily: 'var(--font-brand)', fontSize: '17px', fontWeight: 700, color: '#fff' };
+const brandNameStyle = { fontFamily: 'var(--font-brand)', fontSize: '17px', fontWeight: 700, color: 'var(--text-bright)' };
 const heroStyle = { textAlign: 'center', padding: '48px 24px 24px', maxWidth: '1100px', margin: '0 auto' };
-const pillStyle = { display: 'inline-block', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: '#00e676', backgroundColor: 'rgba(0, 230, 118, 0.1)', border: '1px solid rgba(0, 230, 118, 0.35)', borderRadius: '20px', padding: '6px 16px', marginBottom: '20px' };
-const h1Style = { fontSize: 'clamp(32px, 6vw, 56px)', fontWeight: 700, color: '#fff', margin: '0 0 16px 0', lineHeight: 1.15, letterSpacing: '-0.02em' };
+const pillStyle = { display: 'inline-block', fontSize: '11px', fontWeight: 700, letterSpacing: '1px', color: 'var(--color-win)', backgroundColor: 'rgba(0, 230, 118, 0.1)', border: '1px solid rgba(0, 230, 118, 0.35)', borderRadius: '20px', padding: '6px 16px', marginBottom: '20px' };
+const h1Style = { fontSize: 'clamp(32px, 6vw, 56px)', fontWeight: 700, color: 'var(--text-bright)', margin: '0 0 16px 0', lineHeight: 1.15, letterSpacing: '-0.02em' };
 const subStyle = { fontSize: 'clamp(15px, 2.5vw, 18px)', color: 'var(--text-secondary)', maxWidth: '640px', margin: '0 auto 28px', lineHeight: 1.6 };
 const ctaRowStyle = { display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '40px' };
 const ctaPrimaryStyle = { padding: '14px 28px', fontSize: '15px' };
@@ -205,7 +205,7 @@ const heroShotWrapStyle = { maxWidth: '900px', margin: '0 auto' };
 const shotStyle = { width: '100%', borderRadius: '12px', border: '1px solid var(--border-color)', boxShadow: '0 20px 60px rgba(0, 0, 0, 0.5)', display: 'block' };
 const trustStripStyle = { display: 'flex', justifyContent: 'center', gap: 'clamp(16px, 5vw, 48px)', flexWrap: 'wrap', padding: '20px', color: 'var(--text-secondary)', fontSize: '14px', borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', maxWidth: '1100px', margin: '24px auto 0' };
 const sectionStyle = { padding: '64px 24px 0', maxWidth: '1100px', margin: '0 auto' };
-const h2Style = { fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, color: '#fff', textAlign: 'center', margin: '0 0 8px 0' };
+const h2Style = { fontSize: 'clamp(24px, 4vw, 32px)', fontWeight: 700, color: 'var(--text-bright)', textAlign: 'center', margin: '0 0 8px 0' };
 const sectionSubStyle = { textAlign: 'center', color: 'var(--text-secondary)', margin: '0 0 28px 0' };
 const featureGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' };
 const shotGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginBottom: '24px' };
@@ -214,11 +214,11 @@ const writeupTextStyle = { margin: '0 0 12px 0', fontSize: '13px', color: 'var(-
 const writeupListStyle = { margin: 0, paddingLeft: '18px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.8 };
 const stepsGridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginTop: '20px' };
 const stepNumStyle = { width: '40px', height: '40px', borderRadius: '50%', backgroundColor: 'var(--accent-blue)', color: '#fff', fontWeight: 700, fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' };
-const stepTitleStyle = { margin: '0 0 8px 0', fontSize: '16px', color: '#fff' };
+const stepTitleStyle = { margin: '0 0 8px 0', fontSize: '16px', color: 'var(--text-bright)' };
 const stepTextStyle = { margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 };
 const faqStyle = { backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '14px 18px' };
-const faqQStyle = { cursor: 'pointer', fontWeight: 600, color: '#fff', fontSize: '14px' };
+const faqQStyle = { cursor: 'pointer', fontWeight: 600, color: 'var(--text-bright)', fontSize: '14px' };
 const faqAStyle = { margin: '10px 0 0 0', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6 };
 const finalCtaStyle = { textAlign: 'center', padding: '80px 24px', maxWidth: '1100px', margin: '0 auto' };
 const footerStyle = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '24px', borderTop: '1px solid var(--border-color)', maxWidth: '1100px', margin: '0 auto' };
-const footerLinkStyle = { color: '#f59e0b', fontSize: '13px', fontWeight: 700, textDecoration: 'none' };
+const footerLinkStyle = { color: 'var(--color-amber-text)', fontSize: '13px', fontWeight: 700, textDecoration: 'none' };

@@ -5,6 +5,21 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>My_PnL_Lens</title>
+    <!-- Pre-paint theme: applies the saved/system skin BEFORE React mounts so
+         light-mode users never flash dark. Key must match STORAGE_KEYS.theme.
+         'pnl' can't resolve here (needs trade data) so it starts dark and
+         React corrects it on mount. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('mypnllens_theme');
+          var skin = 'dark';
+          if (saved === 'light') skin = 'light';
+          else if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) skin = 'light';
+          document.documentElement.setAttribute('data-theme', skin);
+        } catch (e) { /* fresh dark default */ }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

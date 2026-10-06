@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { SettingsIcon, Save, Eraser, Recycle, Bomb } from 'lucide-react';
+import { SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun, TrendingUp } from 'lucide-react';
+import { THEME_MODES } from '../utils/themeConfig.js';
 
 export default function Settings({
   settings,
@@ -13,6 +14,8 @@ export default function Settings({
   displayName = 'my',
   setDisplayName,
   appName = 'My_PnL_Lens',
+  themeMode = 'dark',
+  setThemeMode,
 }) {
   const [savedMsg, setSavedMsg] = useState(false);
   const [nameDraft, setNameDraft] = useState(displayName);
@@ -66,7 +69,7 @@ export default function Settings({
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
             App name preview:{' '}
             {/* Added brand font styling to the preview tag */}
-            <strong style={{ color: '#fff', fontFamily: 'var(--font-brand)', fontWeight: 700, letterSpacing: '0.02em' }}>
+            <strong style={{ color: 'var(--text-bright)', fontFamily: 'var(--font-brand)', fontWeight: 700, letterSpacing: '0.02em' }}>
               {appName}
             </strong>
             {' '}(letters & numbers only; empty becomes My_PnL_Lens)
@@ -89,13 +92,43 @@ export default function Settings({
           <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
             Opens on this page when you launch or refresh the app.
           </span>
+
+          <label style={{ ...labelStyle, marginTop: '16px' }}>Appearance</label>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            {THEME_MODES.map((m) => {
+              const active = themeMode === m.id;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setThemeMode?.(m.id)}
+                  className="ts-btn"
+                  style={{
+                    flex: 1,
+                    justifyContent: 'center',
+                    backgroundColor: active ? 'var(--accent-blue)' : 'var(--bg-main)',
+                    color: active ? '#fff' : 'var(--text-secondary)',
+                    border: '1px solid ' + (active ? 'var(--accent-blue)' : 'var(--border-color)'),
+                    padding: '8px 6px',
+                    fontSize: '12px',
+                  }}
+                >
+                  {m.id === 'dark' ? <Moon size={13} /> : m.id === 'light' ? <Sun size={13} /> : <TrendingUp size={13} />}
+                  {m.label}
+                </button>
+              );
+            })}
+          </div>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
+            Saved on this device only. P&L Based glows green in profit and red in loss, from the active account's total P&L.
+          </span>
         </div>
       </div>
 
       <div style={{ borderTop: '1px solid var(--border-color)', margin: '32px 0', maxWidth: '520px' }} />
 
       <p style={{ color: 'var(--text-secondary)', marginTop: 0, marginBottom: '24px' }}>
-        Settings for <strong style={{ color: '#fff' }}>{accountName}</strong> only. Other accounts keep their own settings.
+        Settings for <strong style={{ color: 'var(--text-bright)' }}>{accountName}</strong> only. Other accounts keep their own settings.
       </p>
 
       <form onSubmit={handleSave} style={{ maxWidth: '520px' }}>
@@ -149,7 +182,7 @@ export default function Settings({
       </form>
 
       <div className="ts-card" style={{ maxWidth: '520px', border: '1px solid #7f1d1d' }}>
-        <h3 style={{ ...sectionTitle, color: '#ff5252' }}>Danger Zone</h3>
+        <h3 style={{ ...sectionTitle, color: 'var(--color-loss)' }}>Danger Zone</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           <button type="button" onClick={resetCurrentAccountData} className="ts-btn ts-btn-ghost" style={{ justifyContent: 'flex-start' }}><Eraser size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Clear trades only (this account)</button>
           <button type="button" onClick={resetCurrentAccountEverything} className="ts-btn ts-btn-danger" style={{ justifyContent: 'flex-start' }}><Recycle size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Reset this account (trades + settings)</button>
@@ -160,5 +193,5 @@ export default function Settings({
   );
 }
 
-const sectionTitle = { marginTop: 0, marginBottom: '16px', fontSize: '16px', color: '#d1d4dc' };
+const sectionTitle = { marginTop: 0, marginBottom: '16px', fontSize: '16px', color: 'var(--text-bright)' };
 const labelStyle = { display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' };

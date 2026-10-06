@@ -13,6 +13,7 @@ import {
   calculateRMultipleStats,
 } from '../utils/tradeStats';
 import { filterTradesByPeriod, getTradeResultDate, formatDateShort } from '../utils/dateUtils';
+import { useSkin, chartPalette } from '../utils/themeConfig.js';
 import EmotionAnalysis from './EmotionAnalysis';
 import RuleAdherence from './RuleAdherence';
 import PeriodComparison from './PeriodComparison';
@@ -39,6 +40,8 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
   const cfg = settings || { startingBalance: 10000, currency: 'USD', brokerUtcOffset: 2 };
   const sym = CUR[cfg.currency] || '$';
   const brokerUtcOffset = cfg.brokerUtcOffset ?? 2;
+  // Chart palette for the active skin (recharts needs real colors, not var()).
+  const cc = chartPalette(useSkin());
 
   const [period, setPeriod] = useState('all');
   const [symbolSort, setSymbolSort] = useState('netPnL');
@@ -153,8 +156,8 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '28px' }}>
         <Stat label="Net P&L" value={fmt(overview.netPnL, sym, true)} color={overview.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)'} />
         <Stat label="Expectancy / Trade" value={fmt(overview.expectancy, sym, true)} color={overview.expectancy >= 0 ? 'var(--color-win)' : 'var(--color-loss)'} />
-        <Stat label="Profit Factor" value={overview.pf} color="#a78bfa" hint="> 1.5 is strong" />
-        <Stat label="Win Rate" value={`${overview.winRate}%`} color="#38bdf8" />
+        <Stat label="Profit Factor" value={overview.pf} color="var(--color-purple)" hint="> 1.5 is strong" />
+        <Stat label="Win Rate" value={`${overview.winRate}%`} color="var(--color-sky)" />
         <Stat label="Avg Win" value={fmt(overview.avgWin, sym, true)} color="var(--color-win)" />
         <Stat label="Avg Loss" value={fmt(-overview.avgLoss, sym, true)} color="var(--color-loss)" />
       </div>
@@ -218,7 +221,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
         <Stat
           label="Trades with SL"
           value={`${rStats.countWithR}`}
-          color="#a78bfa"
+          color="var(--color-purple)"
           hint={scoped.length ? `of ${scoped.length} in scope` : 'No trades'}
         />
         <Stat
@@ -240,17 +243,17 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
         <Stat
           label="Reached ≥ 1R"
           value={rStats.countWithR ? `${rStats.pct1R}%` : '—'}
-          color="#38bdf8"
+          color="var(--color-sky)"
         />
         <Stat
           label="Reached ≥ 2R"
           value={rStats.countWithR ? `${rStats.pct2R}%` : '—'}
-          color="#38bdf8"
+          color="var(--color-sky)"
         />
         <Stat
           label="Reached ≥ 3R"
           value={rStats.countWithR ? `${rStats.pct3R}%` : '—'}
-          color="#38bdf8"
+          color="var(--color-sky)"
         />
       </div>
       <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: 0, marginBottom: '28px' }}>
@@ -280,13 +283,13 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={sessionChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barCategoryGap="30%">
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+                <XAxis dataKey="name" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
                 <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
                 <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                   {sessionChartData.map((s, i) => (
-                    <Cell key={i} fill={s.pnl >= 0 ? '#38bdf8' : '#ff5252'} />
+                    <Cell key={i} fill={s.pnl >= 0 ? cc.blue : cc.down} />
                   ))}
                 </Bar>
               </BarChart>
@@ -310,7 +313,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
                 <tr key={r.session}>
                   <td style={{ fontWeight: 700 }}>{r.session}</td>
                   <td className="num number-font">{r.count}</td>
-                  <td className="num number-font" style={{ color: '#38bdf8' }}>{r.winRate}%</td>
+                  <td className="num number-font" style={{ color: 'var(--color-sky)' }}>{r.winRate}%</td>
                   <td className="num number-font" style={{ fontWeight: 700, color: r.pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                     {fmt(r.pnl, sym, true)}
                   </td>
@@ -346,7 +349,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '12px' }}>
             <span style={calChip}>P&L <strong style={{ color: calendar.monthPnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>{fmt(calendar.monthPnl, sym, true)}</strong></span>
             <span style={calChip}>Trades <strong>{calendar.monthTrades}</strong></span>
-            <span style={calChip}>Win <strong style={{ color: '#38bdf8' }}>{calendar.monthWinRate}%</strong></span>
+            <span style={calChip}>Win <strong style={{ color: 'var(--color-sky)' }}>{calendar.monthWinRate}%</strong></span>
           </div>
         </div>
 
@@ -400,15 +403,15 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
             <AreaChart data={cumData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
                 <linearGradient id="acum" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#2962ff" stopOpacity={0.5} />
-                  <stop offset="95%" stopColor="#2962ff" stopOpacity={0} />
+                  <stop offset="5%" stopColor={cc.accent} stopOpacity={0.5} />
+                  <stop offset="95%" stopColor={cc.accent} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-              <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+              <XAxis dataKey="date" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
-              <Area type="monotone" dataKey="cumulative" stroke="#2962ff" strokeWidth={2.5} fill="url(#acum)" />
+              <Area type="monotone" dataKey="cumulative" stroke={cc.accent} strokeWidth={2.5} fill="url(#acum)" />
             </AreaChart>
           </ResponsiveContainer>
         )}
@@ -419,13 +422,13 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
         {dailyData.length === 0 ? <EmptyMsg /> : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={dailyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-              <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={10} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+              <XAxis dataKey="date" stroke={cc.tick} fontSize={10} tickLine={false} axisLine={false} />
+              <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
               <Bar dataKey="pnl" radius={[3, 3, 0, 0]}>
                 {dailyData.map((d, i) => (
-                  <Cell key={i} fill={d.pnl >= 0 ? '#00e676' : '#ff5252'} />
+                  <Cell key={i} fill={d.pnl >= 0 ? cc.up : cc.down} />
                 ))}
               </Bar>
             </BarChart>
@@ -443,27 +446,27 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
               <div style={{ height: '200px' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={directionBarData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }} barCategoryGap="30%">
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                    <XAxis dataKey="name" stroke="var(--text-secondary)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+                    <XAxis dataKey="name" stroke={cc.tick} fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
                     <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
                     <Bar dataKey="pnl" radius={[6, 6, 0, 0]}>
-                      <Cell fill={buySell.buys.netPnL >= 0 ? '#38bdf8' : '#ff5252'} />
-                      <Cell fill={buySell.sells.netPnL >= 0 ? '#00e676' : '#f87171'} />
+                      <Cell fill={buySell.buys.netPnL >= 0 ? cc.blue : cc.down} />
+                      <Cell fill={buySell.sells.netPnL >= 0 ? cc.up : cc.rose} />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
                 <div style={miniBox}>
-                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>BUYS ({buySell.buys.count})</span>
+                  <span style={{ color: 'var(--color-sky)', fontWeight: 700 }}>BUYS ({buySell.buys.count})</span>
                   <div className="number-font" style={{ fontWeight: 700, color: buySell.buys.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                     {fmt(buySell.buys.netPnL, sym, true)}
                   </div>
                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Win {buySell.buys.winRate}%</div>
                 </div>
                 <div style={miniBox}>
-                  <span style={{ color: '#f87171', fontWeight: 700 }}>SELLS ({buySell.sells.count})</span>
+                  <span style={{ color: 'var(--color-rose)', fontWeight: 700 }}>SELLS ({buySell.sells.count})</span>
                   <div className="number-font" style={{ fontWeight: 700, color: buySell.sells.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                     {fmt(buySell.sells.netPnL, sym, true)}
                   </div>
@@ -491,7 +494,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
                   <tr key={r.day}>
                     <td style={{ fontWeight: 700 }}>{r.day}</td>
                     <td className="num number-font">{r.count}</td>
-                    <td className="num number-font" style={{ color: '#38bdf8' }}>{r.winRate}%</td>
+                    <td className="num number-font" style={{ color: 'var(--color-sky)' }}>{r.winRate}%</td>
                     <td className="num number-font" style={{ fontWeight: 700, color: r.pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                       {fmt(r.pnl, sym, true)}
                     </td>
@@ -525,13 +528,13 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
         {symbolChart.length === 0 ? <EmptyMsg /> : (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={symbolChart} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-              <XAxis dataKey="symbol" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+              <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+              <XAxis dataKey="symbol" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+              <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
               <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
               <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                 {symbolChart.map((s, i) => (
-                  <Cell key={i} fill={s.pnl >= 0 ? '#00e676' : '#ff5252'} />
+                  <Cell key={i} fill={s.pnl >= 0 ? cc.up : cc.down} />
                 ))}
               </Bar>
             </BarChart>
@@ -564,7 +567,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
                   <tr key={r.symbol}>
                     <td style={{ fontWeight: 700 }}>{r.symbol}</td>
                     <td className="num number-font">{r.count}</td>
-                    <td className="num number-font" style={{ color: '#38bdf8' }}>{r.winRate.toFixed(1)}%</td>
+                    <td className="num number-font" style={{ color: 'var(--color-sky)' }}>{r.winRate.toFixed(1)}%</td>
                     <td className="num number-font" style={{ fontWeight: 700, color: r.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                       {fmt(r.netPnL, sym, true)}
                     </td>
@@ -604,7 +607,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
                   <tr key={r.month}>
                     <td style={{ fontWeight: 700 }}>{r.month}</td>
                     <td className="num number-font">{r.trades}</td>
-                    <td className="num number-font" style={{ color: '#38bdf8' }}>{r.winRate}%</td>
+                    <td className="num number-font" style={{ color: 'var(--color-sky)' }}>{r.winRate}%</td>
                     <td className="num number-font" style={{ fontWeight: 700, color: r.pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                       {fmt(r.pnl, sym, true)}
                     </td>
@@ -773,7 +776,7 @@ function Stat({ label, value, color, hint }) {
   return (
     <div className="ts-card" style={{ padding: '14px 16px' }}>
       <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', margin: '0 0 6px 0' }}>{label}</p>
-      <h2 className="number-font" style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: color || '#fff' }}>{value}</h2>
+      <h2 className="number-font" style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: color || 'var(--text-bright)' }}>{value}</h2>
       {hint && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{hint}</span>}
     </div>
   );

@@ -72,7 +72,7 @@ export default function Feedback() {
   return (
     <div>
       <h1 style={{ fontSize: '24px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}><MessageCircle size={24} /> Support & Feedback</h1>
-      <p style={{ color: '#787b86', marginTop: 0, marginBottom: '24px' }}>
+      <p style={{ color: 'var(--text-secondary)', marginTop: 0, marginBottom: '24px' }}>
         Found a bug? Have a request? Send us a message — it lands straight in our inbox.
       </p>
 
@@ -104,18 +104,18 @@ export default function Feedback() {
           <button
             type="submit"
             disabled={status === 'sending'}
-            style={{ ...btnStyle, backgroundColor: status === 'sending' ? '#4b5563' : '#2962ff', width: '100%', marginTop: '18px' }}
+            style={{ ...btnStyle, backgroundColor: status === 'sending' ? '#4b5563' : 'var(--accent-blue)', width: '100%', marginTop: '18px' }}
           >
             {status === 'sending' ? 'Sending...' : <><Send size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Send Message</>}
           </button>
 
           {status === 'success' && (
-            <p style={{ color: '#00e676', fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>
+            <p style={{ color: 'var(--color-win)', fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>
               <CircleCheck size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />Message sent! We'll reply to your email.
             </p>
           )}
           {status === 'error' && (
-            <p style={{ color: '#ff5252', fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>
+            <p style={{ color: 'var(--color-loss)', fontSize: '14px', marginTop: '12px', marginBottom: 0 }}>
               <CircleX size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />Something went wrong. Please try again.
             </p>
           )}
@@ -123,12 +123,12 @@ export default function Feedback() {
 
         {/* User's own submitted tickets */}
         <div>
-          <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px', color: '#d1d4dc' }}>
+          <h3 style={{ marginTop: 0, marginBottom: '12px', fontSize: '16px', color: 'var(--text-bright)' }}>
             Your Sent Messages ({myTickets.length})
           </h3>
 
           {myTickets.length === 0 ? (
-            <div style={{ ...cardStyle, color: '#787b86', textAlign: 'center', padding: '36px' }}>
+            <div style={{ ...cardStyle, color: 'var(--text-secondary)', textAlign: 'center', padding: '36px' }}>
               You haven't sent any messages yet.
             </div>
           ) : (
@@ -137,14 +137,14 @@ export default function Feedback() {
                 <div key={t.id} style={cardStyle}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ fontWeight: 'bold' }}>{t.subject}</span>
-                    <span style={{ color: '#787b86', fontSize: '12px' }}>#{t.id}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '12px' }}>#{t.id}</span>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
                     <span style={badgeStyle}>{t.category}</span>
                     <span style={{ ...badgeStyle, backgroundColor: '#0d47a1' }}>Sent</span>
-                    <span style={{ color: '#787b86', fontSize: '12px', alignSelf: 'center' }}>{t.date}</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '12px', alignSelf: 'center' }}>{t.date}</span>
                   </div>
-                  <p style={{ margin: 0, color: '#d1d4dc', fontSize: '13px', lineHeight: 1.5 }}>{t.message}</p>
+                  <p style={{ margin: 0, color: 'var(--text-bright)', fontSize: '13px', lineHeight: 1.5 }}>{t.message}</p>
                 </div>
               ))}
             </div>
@@ -155,8 +155,10 @@ export default function Feedback() {
   );
 }
 
-const cardStyle = { backgroundColor: '#1e222d', padding: '20px', borderRadius: '10px' };
-const labelStyle = { display: 'block', fontSize: '12px', color: '#787b86', marginBottom: '5px' };
-const inputStyle = { width: '100%', padding: '10px', backgroundColor: '#131722', border: '1px solid #363a45', color: 'white', borderRadius: '6px', boxSizing: 'border-box' };
+const cardStyle = { backgroundColor: 'var(--bg-surface-hover)', border: '1px solid var(--border-color)', padding: '20px', borderRadius: '10px' };
+const labelStyle = { display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '5px' };
+const inputStyle = { width: '100%', padding: '10px', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', borderRadius: '6px', boxSizing: 'border-box' };
 const btnStyle = { border: 'none', color: 'white', padding: '11px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '14px' };
+// Status pills keep their fixed dark backgrounds in every theme — deliberate
+// tag styling (dark pills read well on light pages too).
 const badgeStyle = { backgroundColor: '#2a2e39', color: '#d1d4dc', fontSize: '11px', padding: '3px 8px', borderRadius: '4px' };

@@ -67,7 +67,7 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
   if (trades.length === 0 || !hasPlaybooksWithRules || totalTaggedTrades === 0) {
     return (
       <div className="ts-card" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-        <h3 style={{ margin: '0 0 8px 0', color: '#fff' }}>
+        <h3 style={{ margin: '0 0 8px 0', color: 'var(--text-bright)' }}>
           <ClipboardList size={18} style={{ verticalAlign: '-3px', marginRight: '6px' }} /> Playbook Rule Adherence
         </h3>
         <p style={{ margin: 0, fontSize: '13px' }}>
@@ -92,7 +92,7 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
 
       {/* CARD 1: Side-by-Side Stats */}
       <div className="ts-card">
-        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Scale size={18} /> Discipline Comparison
         </h3>
         <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -116,8 +116,8 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>Win Rate</td>
-                <td className="number-font" style={{ color: '#38bdf8' }}>{p.count > 0 ? `${p.winRate}%` : '—'}</td>
-                <td className="number-font" style={{ color: '#38bdf8' }}>{i.count > 0 ? `${i.winRate}%` : '—'}</td>
+                <td className="number-font" style={{ color: 'var(--color-sky)' }}>{p.count > 0 ? `${p.winRate}%` : '—'}</td>
+                <td className="number-font" style={{ color: 'var(--color-sky)' }}>{i.count > 0 ? `${i.winRate}%` : '—'}</td>
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>Net P&L</td>
@@ -140,10 +140,10 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>Avg R-Multiple</td>
-                <td className="number-font" style={{ color: p.avgR >= 0 ? '#38bdf8' : 'var(--color-loss)' }}>
+                <td className="number-font" style={{ color: p.avgR >= 0 ? 'var(--color-sky)' : 'var(--color-loss)' }}>
                   {p.countWithR > 0 ? `${p.avgR > 0 ? '+' : ''}${p.avgR}R` : '—'}
                 </td>
-                <td className="number-font" style={{ color: i.avgR >= 0 ? '#38bdf8' : 'var(--color-loss)' }}>
+                <td className="number-font" style={{ color: i.avgR >= 0 ? 'var(--color-sky)' : 'var(--color-loss)' }}>
                   {i.countWithR > 0 ? `${i.avgR > 0 ? '+' : ''}${i.avgR}R` : '—'}
                 </td>
               </tr>
@@ -168,7 +168,7 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
 
       {/* CARD 2: Rule-by-Rule Compliance Tracker */}
       <div className="ts-card" style={{ display: 'flex', flexDirection: 'column' }}>
-        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ListChecks size={18} /> Checklist Rule Compliance
         </h3>
         <p style={{ margin: '0 0 16px 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
@@ -185,7 +185,7 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
               const barColor = item.rate >= 80
                 ? 'var(--color-win)'
                 : item.rate >= 50
-                ? '#facc15'
+                ? 'var(--color-gold)'
                 : 'var(--color-loss)';
 
               return (
@@ -198,7 +198,7 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
                       {item.rate}% ({item.timesFollowed}/{item.totalOpportunites})
                     </span>
                   </div>
-                  <div style={{ color: '#fff', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
+                  <div style={{ color: 'var(--text-bright)', fontSize: '13px', fontWeight: 500, marginBottom: '6px' }}>
                     {item.rule}
                   </div>
                   {/* Progress Bar Container */}

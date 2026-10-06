@@ -13,6 +13,7 @@ import Settings from './component/settings.jsx';
 import Imports from './component/import.jsx';
 import Landing from './component/Landing.jsx';
 import { STORAGE_KEYS, migrateLegacyKeys, clearAllAppStorage } from './utils/storageKeys.js';
+import { getSafeThemeMode, getSystemThemeMode, resolveSkin, getTradesTotalPnl, SkinContext } from './utils/themeConfig.js';
 import { SHOW_LOVE_URL } from './config.js';
 
 // Moves any pre-rebrand 'tradersstack_*' data to the new keys.
@@ -114,6 +115,19 @@ export default function App() {
     localStorage.setItem(STORAGE_KEYS.displayName, safe);
   };
 
+  // Appearance — a device preference like display name (NOT per account).
+  // First visit follows the OS; after that the saved choice wins.
+  const [themeMode, setThemeModeState] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.theme);
+    return saved ? getSafeThemeMode(saved) : getSystemThemeMode();
+  });
+
+  const setThemeMode = (mode) => {
+    const safe = getSafeThemeMode(mode);
+    setThemeModeState(safe);
+    localStorage.setItem(STORAGE_KEYS.theme, safe);
+  };
+
   const appName = getAppName(displayName);
   const logoBadge = displayName.slice(0, 2).toUpperCase();
 
@@ -152,6 +166,13 @@ export default function App() {
   const trades = activeAccount?.trades || [];
   const settings = activeAccount?.settings || DEFAULT_SETTINGS;
   const totalTrades = accounts.reduce((s, a) => s + ((a.trades || []).length), 0);
+
+  // P&L-Based mode tints the whole app from the ACTIVE account's all-time total.
+  const skin = resolveSkin(themeMode, getTradesTotalPnl(trades));
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', skin);
+  }, [skin]);
 
   const setTrades = (newTrades) => {
     setAccounts((prev) => prev.map((a) => a.id === activeAccountId ? { ...a, trades: typeof newTrades === 'function' ? newTrades(a.trades) : newTrades } : a));
@@ -199,6 +220,7 @@ export default function App() {
     const fresh = makeAccount('Main Account'); setAccounts([fresh]); setActiveAccountId(fresh.id); setPlaybooks(DEFAULT_PLAYBOOKS); setActivityLog([]);
     clearAllAppStorage();
     setDisplayNameState(FALLBACK_DISPLAY_NAME);
+    setThemeModeState(getSystemThemeMode());
     setEnteredApp(false);
     alert('All data cleared. Fresh start created.');
   };
@@ -208,10 +230,11 @@ export default function App() {
 
   // Landing gate (placed after all hooks): first-time visitors see the landing page
   if (!enteredApp) {
-    return <Landing onLaunch={handleLaunch} tradeCount={totalTrades} />;
+    return <SkinContext.Provider value={skin}><Landing onLaunch={handleLaunch} tradeCount={totalTrades} /></SkinContext.Provider>;
   }
 
   return (
+    <SkinContext.Provider value={skin}>
     <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-main)' }}>
       {/* Floating OPEN button — only exists while the panel is closed.
           The CLOSE button lives inside the panel header (see sidebar-logo row). */}
@@ -236,7 +259,7 @@ export default function App() {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               {/* Applied the brand font and capitalization formatting */}
-              <h2 style={{ fontFamily: 'var(--font-brand)', fontSize: '15px', fontWeight: 700, letterSpacing: '0.02em', color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={appName}>
+              <h2 style={{ fontFamily: 'var(--font-brand)', fontSize: '15px', fontWeight: 700, letterSpacing: '0.02em', color: 'var(--text-bright)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={appName}>
                 {appName}
               </h2>
               <span style={{ fontSize: '10px', color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>PRO JOURNAL</span>
@@ -264,9 +287,9 @@ export default function App() {
         </div>
         <div className="sidebar-footer ts-card" style={{ padding: '12px', backgroundColor: 'var(--bg-main)', marginTop: 'auto' }}>
           <p style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '4px' }}>ACTIVE ACCOUNT</p>
-          <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>{activeAccount?.name}</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-bright)', marginBottom: '4px' }}>{activeAccount?.name}</div>
           <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}><span className="number-font" style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{trades.length}</span> trades logged</div>
-          <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" title="Support My_PnL_Lens on Selar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px', padding: '8px', textAlign: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', color: '#f59e0b', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
+          <a href={SHOW_LOVE_URL} target="_blank" rel="noopener noreferrer" title="Support My_PnL_Lens on Selar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '10px', padding: '8px', textAlign: 'center', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.35)', borderRadius: '6px', color: 'var(--color-amber-text)', fontSize: '12px', fontWeight: 700, textDecoration: 'none' }}>
             <Coffee size={13} /> Show some love
           </a>
         </div>
@@ -298,16 +321,19 @@ export default function App() {
             displayName={displayName}
             setDisplayName={setDisplayName}
             appName={appName}
+            themeMode={themeMode}
+            setThemeMode={setThemeMode}
           />
         )}
       </main>
     </div>
+    </SkinContext.Provider>
   );
 }
 
 function NavBtn({ icon: Icon, label, active, onClick }) {
   return (
-    <button onClick={onClick} style={{ padding: '10px 14px', backgroundColor: active ? 'rgba(41, 98, 255, 0.12)' : 'transparent', color: active ? '#60a5fa' : 'var(--text-secondary)', border: '1px solid', borderColor: active ? 'rgba(41, 98, 255, 0.3)' : 'transparent', borderRadius: 'var(--radius-sm)', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: active ? 600 : 500, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px', transition: 'all 0.15s ease' }}>
+    <button onClick={onClick} style={{ padding: '10px 14px', backgroundColor: active ? 'rgba(41, 98, 255, 0.12)' : 'transparent', color: active ? 'var(--nav-active)' : 'var(--text-secondary)', border: '1px solid', borderColor: active ? 'rgba(41, 98, 255, 0.3)' : 'transparent', borderRadius: 'var(--radius-sm)', textAlign: 'left', cursor: 'pointer', fontSize: '13px', fontWeight: active ? 600 : 500, display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: '10px', transition: 'all 0.15s ease' }}>
       <Icon size={16} /><span>{label}</span>
     </button>
   );
@@ -331,9 +357,9 @@ function AccountsPage({ accounts, activeAccountId, setActiveAccountId, addAccoun
           return (
             <div key={a.id} className="ts-card" style={{ borderColor: isActive ? 'var(--accent-blue)' : 'var(--border-color)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                {editingId === a.id ? (<input type="text" className="ts-input" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus onBlur={saveEdit} onKeyDown={(e) => e.key === 'Enter' && saveEdit()} />) : (<div><h3 style={{ margin: 0, fontSize: '15px', color: '#fff' }}>{a.name}</h3>{isActive && <span style={{ fontSize: '10px', color: 'var(--accent-blue)', fontWeight: 700 }}>● ACTIVE</span>}</div>)}
+                {editingId === a.id ? (<input type="text" className="ts-input" value={editName} onChange={(e) => setEditName(e.target.value)} autoFocus onBlur={saveEdit} onKeyDown={(e) => e.key === 'Enter' && saveEdit()} />) : (<div><h3 style={{ margin: 0, fontSize: '15px', color: 'var(--text-bright)' }}>{a.name}</h3>{isActive && <span style={{ fontSize: '10px', color: 'var(--accent-blue)', fontWeight: 700 }}>● ACTIVE</span>}</div>)}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Trades: <span className="number-font" style={{ color: '#fff', fontWeight: 600 }}>{a.trades.length}</span></div>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Trades: <span className="number-font" style={{ color: 'var(--text-bright)', fontWeight: 600 }}>{a.trades.length}</span></div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>Balance setting: <span className="number-font">${Number(a.settings?.startingBalance || 0).toLocaleString()}</span></div>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '14px' }}>Net P&L: <span className="number-font" style={{ color: netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)', fontWeight: 700 }}>{netPnL >= 0 ? '+' : '-'}${Math.abs(netPnL).toFixed(2)}</span></div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>

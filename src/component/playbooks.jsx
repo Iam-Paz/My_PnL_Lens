@@ -204,7 +204,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
             <tbody>
               {edgeData.map((row) => (
                 <tr key={row.title}>
-                  <td style={{ fontWeight: 700, color: '#fff' }}>
+                  <td style={{ fontWeight: 700, color: 'var(--text-bright)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <span>{row.title}</span>
                       {row.isLowSample && (
@@ -215,7 +215,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
                             padding: '1px 5px',
                             borderRadius: '3px',
                             backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                            color: '#facc15',
+                            color: 'var(--color-gold)',
                             border: '1px solid rgba(234, 179, 8, 0.3)',
                           }}
                         >
@@ -225,7 +225,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
                     </div>
                   </td>
                   <td className="number-font">{row.count}</td>
-                  <td className="number-font" style={{ color: '#38bdf8' }}>
+                  <td className="number-font" style={{ color: 'var(--color-sky)' }}>
                     {row.count > 0 ? `${row.winRate}%` : '—'}
                   </td>
                   <td
@@ -243,7 +243,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
                   <td className="number-font" style={{ color: 'var(--color-loss)' }}>
                     {row.losses > 0 ? `-$${row.avgLoss.toFixed(2)}` : '—'}
                   </td>
-                  <td className="number-font" style={{ color: row.avgR >= 0 ? '#38bdf8' : 'var(--color-loss)' }}>
+                  <td className="number-font" style={{ color: row.avgR >= 0 ? 'var(--color-sky)' : 'var(--color-loss)' }}>
                     {row.countWithR > 0 ? `${row.avgR > 0 ? '+' : ''}${row.avgR}R` : '—'}
                   </td>
                   <td className="number-font">{row.profitFactor}</td>
@@ -301,7 +301,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
                 paddingRight: '64px',
               }}
             >
-              <h3 style={{ margin: 0, fontSize: '16px', color: '#fff' }}>{pb.title}</h3>
+              <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-bright)' }}>{pb.title}</h3>
               <span className="badge-buy">TF: {pb.timeframe}</span>
             </div>
             <div style={{ position: 'absolute', top: '14px', right: '12px', display: 'flex', gap: '4px' }}>
@@ -587,7 +587,7 @@ const iconBtn = {
   background: 'var(--bg-main)',
   border: '1px solid var(--border-color)',
   borderRadius: '6px',
-  color: '#fff',
+  color: 'var(--text-bright)',
   cursor: 'pointer',
   fontSize: '13px',
   padding: '4px 8px',

@@ -121,7 +121,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
       <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.txt" style={{display:'none'}} />
       <div className="header-bar" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px',flexWrap:'wrap',gap:'16px'}}>
         <div>
-          <h1 style={{fontSize:'22px',fontWeight:700,color:'#fff',margin:0}}>Trading Journal</h1>
+          <h1 style={{fontSize:'22px',fontWeight:700,color:'var(--text-bright)',margin:0}}>Trading Journal</h1>
           <p style={{color:'var(--text-secondary)',fontSize:'13px',margin:'4px 0 0 0'}}>Times shown in your local timezone (broker offset UTC{brokerUtcOffset>=0?'+':''}{brokerUtcOffset}). Click a row for detail.</p>
         </div>
         <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
@@ -159,7 +159,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                       <td className="number-font" style={{color:'var(--text-secondary)',fontSize:'12px'}}>{getTicket(trade)}</td>
                       <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{displayLocal(getOpenTime(trade))}</td>
                       <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{getCloseTime(trade)?displayLocal(getCloseTime(trade)):'—'}</td>
-                      <td style={{fontWeight:700,color:'#fff'}}>{trade.symbol}{trade.notes?<span style={{marginLeft:'6px'}}><StickyNote size={13} style={{verticalAlign:'-2px'}} /></span>:null}{trade.screenshot?<span style={{marginLeft:'4px'}}><Camera size={13} style={{verticalAlign:'-2px'}} /></span>:null}</td>
+                      <td style={{fontWeight:700,color:'var(--text-bright)'}}>{trade.symbol}{trade.notes?<span style={{marginLeft:'6px'}}><StickyNote size={13} style={{verticalAlign:'-2px'}} /></span>:null}{trade.screenshot?<span style={{marginLeft:'4px'}}><Camera size={13} style={{verticalAlign:'-2px'}} /></span>:null}</td>
                       <td className="center"><span className={dir==='buy'?'badge-buy':'badge-sell'}>{dir.toUpperCase()}</span></td>
                       <td className="num number-font">{getVolume(trade)}</td>
                       <td className="num number-font">{trade.entryPrice||'—'}</td>
@@ -266,7 +266,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
                   {EMOTIONS.map(emo=>{
                     const active=(editingTrade.emotions||[]).includes(emo);
-                    return <button key={emo} type="button" onClick={()=>toggleEmotion(emo)} style={{padding:'5px 10px',borderRadius:'14px',fontSize:'12px',cursor:'pointer',border:active?'1px solid #2962ff':'1px solid #363a45',backgroundColor:active?'#2962ff':'transparent',color:'white'}}>{emo}</button>;
+                    return <button key={emo} type="button" onClick={()=>toggleEmotion(emo)} style={{padding:'5px 10px',borderRadius:'14px',fontSize:'12px',cursor:'pointer',border:active?'1px solid var(--accent-blue)':'1px solid #363a45',backgroundColor:active?'var(--accent-blue)':'transparent',color:active?'white':'var(--text-bright)'}}>{emo}</button>;
                   })}
                 </div>
               </div>

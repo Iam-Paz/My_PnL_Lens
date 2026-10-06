@@ -165,13 +165,13 @@ export default function Imports({
             <div>
               <h3 style={{ margin: 0, fontSize: '16px' }}>Import Preview — {fileName}</h3>
               <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '12px', flexWrap: 'wrap' }}>
-                <span style={{ color: '#4ade80', fontWeight: 700 }}>
+                <span style={{ color: 'var(--color-win)', fontWeight: 700 }}>
                   ✓ {parsedPreview.valid.length} Ready to Import
                 </span>
-                <span style={{ color: '#f59e0b', fontWeight: 600 }}>
+                <span style={{ color: 'var(--color-amber-text)', fontWeight: 600 }}>
                   <TriangleAlert size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />{parsedPreview.duplicates.length} Duplicates Skipped
                 </span>
-                <span style={{ color: '#f87171', fontWeight: 600 }}>
+                <span style={{ color: 'var(--color-rose)', fontWeight: 600 }}>
                   ✕ {parsedPreview.invalid.length} Invalid Rows
                 </span>
               </div>
@@ -193,7 +193,7 @@ export default function Imports({
 
           {parsedPreview.invalid.length > 0 && (
             <div className="ts-card" style={{ borderColor: 'rgba(248,113,113,0.4)' }}>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#f87171' }}>Invalid row details</h4>
+              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-rose)' }}>Invalid row details</h4>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                 {parsedPreview.invalid.slice(0, 5).map((item) => (
                   <div key={item.rowNumber}>

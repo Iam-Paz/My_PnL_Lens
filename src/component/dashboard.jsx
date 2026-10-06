@@ -6,6 +6,7 @@ import {
 import { LayoutDashboard, Share2, TriangleAlert, Flame, Snowflake } from 'lucide-react';
 import { formatDateShort, filterTradesByPeriod, getTradeResultDate } from '../utils/dateUtils';
 import { sortTradesChronological } from '../utils/tradeStats';
+import { useSkin, chartPalette } from '../utils/themeConfig.js';
 import ShareCard from './ShareCard.jsx';
 
 const PERIODS = [
@@ -33,6 +34,8 @@ export default function Dashboard({ trades = [], settings }) {
     currency: 'USD',
   };
   const sym = CUR[cfg.currency] || '$';
+  // Chart palette for the active skin (recharts needs real colors, not var()).
+  const cc = chartPalette(useSkin());
 
   const [period, setPeriod] = useState('30d');
   const [shareOpen, setShareOpen] = useState(false);
@@ -133,7 +136,7 @@ export default function Dashboard({ trades = [], settings }) {
             title="Generate a shareable P&L image"
             style={{
               backgroundColor: 'rgba(245, 158, 11, 0.12)',
-              color: '#f59e0b',
+              color: 'var(--color-amber-text)',
               border: '1px solid rgba(245, 158, 11, 0.4)',
               padding: '7px 12px',
               fontSize: '12px',
@@ -147,18 +150,18 @@ export default function Dashboard({ trades = [], settings }) {
       <SectionTitle>Performance Overview</SectionTitle>
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginBottom: '28px' }}>
         <Stat label="Net P&L" value={fmt(stats.netPnL, sym, true)} color={stats.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)'} />
-        <Stat label="Win Rate" value={`${stats.winRate}%`} color="#38bdf8" />
+        <Stat label="Win Rate" value={`${stats.winRate}%`} color="var(--color-sky)" />
         <Stat label="Avg Winning Trade" value={fmt(stats.avgWin, sym, true)} color="var(--color-win)" />
         <Stat label="Avg Losing Trade" value={fmt(-stats.avgLoss, sym, true)} color="var(--color-loss)" />
-        <Stat label="Avg Risk / Reward" value={`1 : ${stats.avgRR}`} color="#f59e0b" />
-        <Stat label="Profit Factor" value={stats.profitFactor} color="#a78bfa" hint="> 1.5 is strong" />
+        <Stat label="Avg Risk / Reward" value={`1 : ${stats.avgRR}`} color="var(--color-amber-text)" />
+        <Stat label="Profit Factor" value={stats.profitFactor} color="var(--color-purple)" hint="> 1.5 is strong" />
       </div>
 
       {(showDailyDd || showMaxDd) && (
         <>
           <SectionTitle>Risk Management Monitor</SectionTitle>
           {dailyDdBreached && (
-            <div style={{ backgroundColor: 'rgba(255,82,82,0.12)', border: '1px solid #ff5252', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: '#ff5252', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ backgroundColor: 'rgba(255,82,82,0.12)', border: '1px solid var(--color-loss)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: 'var(--color-loss)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <TriangleAlert size={16} style={{ flexShrink: 0 }} />
               <span>DAILY LIMIT HIT — you're down {sym}{dailyDdUsed.toFixed(2)} of your {sym}{dailyDdLimit.toFixed(2)} daily limit. Step away and protect the account.</span>
             </div>
@@ -200,15 +203,15 @@ export default function Dashboard({ trades = [], settings }) {
               <AreaChart data={equityData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="eq" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2962ff" stopOpacity={0.5} />
-                    <stop offset="95%" stopColor="#2962ff" stopOpacity={0} />
+                    <stop offset="5%" stopColor={cc.accent} stopOpacity={0.5} />
+                    <stop offset="95%" stopColor={cc.accent} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                <XAxis dataKey="date" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+                <XAxis dataKey="date" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
                 <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
-                <Area type="monotone" dataKey="equity" stroke="#2962ff" strokeWidth={2.5} fill="url(#eq)" />
+                <Area type="monotone" dataKey="equity" stroke={cc.accent} strokeWidth={2.5} fill="url(#eq)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -234,8 +237,8 @@ export default function Dashboard({ trades = [], settings }) {
 
       <SectionTitle>Performance Analytics</SectionTitle>
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '28px' }}>
-        <Stat label="Trade Win Rate" value={`${stats.winRate}%`} color="#38bdf8" />
-        <Stat label="Winning Days Rate" value={`${stats.winningDaysRate}%`} color="#38bdf8" />
+        <Stat label="Trade Win Rate" value={`${stats.winRate}%`} color="var(--color-sky)" />
+        <Stat label="Winning Days Rate" value={`${stats.winningDaysRate}%`} color="var(--color-sky)" />
         <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
         <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
         <Stat label="Trading Days Logged" value={stats.tradingDays} />
@@ -253,13 +256,13 @@ export default function Dashboard({ trades = [], settings }) {
             <div style={{ height: '220px', marginBottom: '20px' }} className="chart-container">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
-                  <XAxis dataKey="week" stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="var(--text-secondary)" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+                  <XAxis dataKey="week" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
                   <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
                   <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                     {weeklyData.map((w, i) => (
-                      <Cell key={`weekly-cell-${i}`} fill={Number(w.pnl) >= 0 ? '#00e676' : '#ff5252'} />
+                      <Cell key={`weekly-cell-${i}`} fill={Number(w.pnl) >= 0 ? cc.up : cc.down} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -465,7 +468,7 @@ function Stat({ label, value, color, hint }) {
   return (
     <div className="ts-card" style={{ padding: '14px 16px' }}>
       <p style={{ color: 'var(--text-secondary)', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', margin: '0 0 6px 0' }}>{label}</p>
-      <h2 className="number-font" style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: color || '#fff' }}>{value}</h2>
+      <h2 className="number-font" style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: color || 'var(--text-bright)' }}>{value}</h2>
       {hint && <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{hint}</span>}
     </div>
   );
@@ -474,7 +477,7 @@ function Stat({ label, value, color, hint }) {
 function RiskCard({ title, used, limit, usagePct, sym, hint }) {
   const critical = usagePct >= 80;
   const warning = usagePct >= 50 && usagePct < 80;
-  const barColor = critical ? '#ff5252' : warning ? '#f59e0b' : '#00e676';
+  const barColor = critical ? 'var(--color-loss)' : warning ? 'var(--color-amber-text)' : 'var(--color-win)';
   return (
     <div className="ts-card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>

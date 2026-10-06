@@ -66,7 +66,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
     <div onClick={onClose} style={overlayStyle}>
       <div onClick={(e) => e.stopPropagation()} style={modalStyle} className="modal-mobile">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ margin: 0, fontSize: '18px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}><Share2 size={18} /> Share Performance</h2>
+          <h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-bright)', display: 'flex', alignItems: 'center', gap: '8px' }}><Share2 size={18} /> Share Performance</h2>
           <button onClick={onClose} className="ts-btn ts-btn-ghost" style={{ padding: '6px 12px' }}>✕</button>
         </div>
 
