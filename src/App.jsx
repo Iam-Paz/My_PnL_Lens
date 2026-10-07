@@ -44,6 +44,13 @@ const MORE_SHEET_ENTRIES = [
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
 
+// Browser tab title follows the open page (see effect below).
+const TAB_TITLES = {
+  dashboard: 'Dashboard', journal: 'Journal', analytics: 'Analytics',
+  playbooks: 'Playbooks', imports: 'Imports', accounts: 'Manage Accounts',
+  feedback: 'Support', settings: 'Settings',
+};
+
 function readJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -243,6 +250,12 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
 
+  // Lock background scroll while the More sheet is open (phones).
+  useEffect(() => {
+    document.body.style.overflow = moreSheetOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [moreSheetOpen]);
+
   // ---- Landing gate (first launch shows the Landing page) ----
   const [entered, setEntered] = useState(() => {
     try { return localStorage.getItem(STORAGE_KEYS.enteredApp) === 'true'; } catch { return false; }
@@ -259,6 +272,11 @@ export default function App() {
   // Mobile nav click — also closes the More sheet (direct tabs render the
   // sheet closed anyway; sheet entries close it after navigating).
   const handleMobileNav = (tab) => { setActiveTab(tab); setMoreSheetOpen(false); };
+
+  // Browser tab title follows the open page.
+  useEffect(() => {
+    document.title = `${TAB_TITLES[activeTab] || 'Journal'} · ${appName}`;
+  }, [activeTab, appName]);
 
   // Nickname for the mobile header: first word of account name, max 12 chars.
   const activeNickname = (activeAccount?.name || 'Account').split(' ')[0].slice(0, 12);

@@ -101,15 +101,33 @@ export default function AccountsPage({ accounts, setAccounts, activeAccountId, s
           return (
             <div
               key={a.id}
-              className="ts-card"
+              className="ts-card ts-card-hover"
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
+                gap: '14px',
                 flexWrap: 'wrap',
-                ...(active ? { borderColor: 'var(--accent-blue)' } : {}),
+                ...(active ? { borderColor: 'var(--accent-blue)', boxShadow: '0 0 0 1px var(--accent-blue)' } : {}),
               }}
             >
+              <div
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  backgroundColor: active ? 'var(--accent-blue)' : 'var(--bg-main)',
+                  border: active ? '1px solid var(--accent-blue)' : '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: '16px',
+                  color: active ? '#fff' : 'var(--text-secondary)',
+                  flexShrink: 0,
+                }}
+              >
+                {(a.name || 'A').charAt(0).toUpperCase()}
+              </div>
               <div style={{ flex: 1, minWidth: '180px' }}>
                 {editing ? (
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -133,19 +151,20 @@ export default function AccountsPage({ accounts, setAccounts, activeAccountId, s
                     </button>
                   </div>
                 ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-bright)' }}>{a.name}</span>
-                    {active && <span className="ts-badge ts-badge-blue">ACTIVE</span>}
-                  </div>
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-bright)' }}>{a.name}</span>
+                      {active && <span className="ts-badge ts-badge-blue">ACTIVE</span>}
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '8px' }}>
+                      <span className="pill pill-blue number-font">{n} trade{n === 1 ? '' : 's'}</span>
+                      <span className={`pill number-font ${pnl >= 0 ? 'pill-green' : 'pill-red'}`}>
+                        Net {pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`}
+                      </span>
+                      <span className="pill pill-gray">{a.settings?.currency || 'USD'}</span>
+                    </div>
+                  </>
                 )}
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '4px' }}>
-                  <span className="number-font" style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{n}</span>
-                  {' '}trade{n === 1 ? '' : 's'} · Net{' '}
-                  <span className="number-font" style={{ fontWeight: 700, color: pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
-                    {pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`}
-                  </span>
-                  {' '}· {a.settings?.currency || 'USD'}
-                </div>
               </div>
               {!editing && (
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>

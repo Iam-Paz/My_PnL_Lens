@@ -101,16 +101,18 @@ html[data-theme="pnl-loss"] {
 html, body {
   margin: 0;
   padding: 0;
+  overflow-x: hidden;
   background-color: var(--bg-main);
   color: var(--text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
 }
-button { font-family: inherit; }
+button { font-family: inherit; -webkit-tap-highlight-color: transparent; }
 
 /* 5. LAYOUT PRIMITIVES */
 .ts-card {
   background-color: var(--bg-surface);
+  padding: 20px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
@@ -223,7 +225,7 @@ button { font-family: inherit; }
    underneath; .nav-collapsed narrows that reservation to the 76px rail.
    Phones (<=768px): the sidebar hides entirely and the mobile header,
    bottom tab bar, and More sheet take over (see queries below). */
-.app-shell { padding-left: var(--sidebar-width); }
+.app-shell { padding-left: var(--sidebar-width); transition: padding-left 0.22s ease; }
 .app-shell.nav-collapsed { --sidebar-width: 76px; }
 aside.ts-sidebar {
   position: fixed;
@@ -436,6 +438,7 @@ button.rail-icon-btn:hover, a.rail-icon-btn:hover {
   main.ts-main { padding: 68px 10px 96px 10px !important; }
   .ts-table thead th, .ts-table tbody td { padding: 8px; font-size: 12px; }
   .mobile-tab { font-size: 9px; }
+  .playbook-grid { grid-template-columns: 1fr !important; }
 }
 
 /* TABLE COLUMN ALIGNMENT FIX */
@@ -443,3 +446,20 @@ button.rail-icon-btn:hover, a.rail-icon-btn:hover {
 .ts-table th.num, .ts-table td.num { text-align: right; }
 .ts-table th.center, .ts-table td.center { text-align: center; }
 .ts-table tbody td .number-font { display: inline-block; }
+
+/* 15. CARD GLOW-UP — premium pills, icon buttons, hover lift, checklists. */
+.ts-card-hover { transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease; }
+.ts-card-hover:hover { transform: translateY(-2px); border-color: var(--ghost-hover-border); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+html[data-theme="light"] .ts-card-hover:hover, .theme-light .ts-card-hover:hover { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.14); }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; }
+.pill-green { background-color: var(--color-win-bg); color: var(--color-win); }
+.pill-red { background-color: var(--color-loss-bg); color: var(--color-loss); }
+.pill-blue { background-color: var(--nav-active-bg); color: var(--nav-active-text); }
+.pill-amber { background-color: var(--color-amber-bg); color: var(--color-amber-text); }
+.pill-gray { background-color: var(--ghost-hover-bg); color: var(--text-secondary); }
+.icon-btn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; background: var(--bg-main); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-secondary); cursor: pointer; font-size: 13px; flex-shrink: 0; transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease; }
+.icon-btn:hover { background: var(--ghost-hover-bg); color: var(--text-bright); border-color: var(--ghost-hover-border); }
+.icon-btn-danger:hover { background: var(--color-loss-bg); color: var(--color-loss); border-color: var(--color-loss); }
+ul.rule-list { list-style: none; margin: 6px 0 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+ul.rule-list li { position: relative; padding-left: 22px; font-size: 12px; color: var(--text-primary); line-height: 1.5; }
+ul.rule-list li::before { content: '✓'; position: absolute; left: 2px; top: 0; color: var(--color-win); font-weight: 800; }

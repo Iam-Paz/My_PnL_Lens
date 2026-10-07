@@ -291,47 +291,36 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
         }}
       >
         {playbooks.map((pb) => (
-          <div key={pb.id} className="ts-card" style={{ position: 'relative' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'flex-start',
-                marginBottom: '8px',
-                paddingRight: '64px',
-              }}
-            >
-              <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-bright)' }}>{pb.title}</h3>
-              <span className="badge-buy">TF: {pb.timeframe}</span>
-            </div>
-            <div style={{ position: 'absolute', top: '14px', right: '12px', display: 'flex', gap: '4px' }}>
-              <button onClick={() => handleOpenEdit(pb)} style={iconBtn} title="Edit playbook">
-                <Pencil size={13} style={{ verticalAlign: 'middle' }} />
+          <div key={pb.id} className="ts-card ts-card-hover" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-bright)', flex: 1, minWidth: 0 }}>{pb.title}</h3>
+              <button onClick={() => handleOpenEdit(pb)} className="icon-btn" title="Edit playbook">
+                <Pencil size={14} />
               </button>
-              <button onClick={() => handleDeletePlaybook(pb.id, pb.title)} style={iconBtn} title="Delete playbook">
+              <button onClick={() => handleDeletePlaybook(pb.id, pb.title)} className="icon-btn icon-btn-danger" title="Delete playbook">
                 ✕
               </button>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: '0 0 12px 0' }}>
-              {pb.description}
-            </p>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <span style={miniBadge}><Shield size={11} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Risk: {pb.riskPercent}</span>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <span className="pill pill-green">TF: {pb.timeframe}</span>
+              <span className="pill pill-blue"><Shield size={11} style={{ verticalAlign: '-1px' }} /> Risk: {pb.riskPercent}</span>
             </div>
+            {pb.description ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>
+                {pb.description}
+              </p>
+            ) : null}
             <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>RULES:</span>
-              <ul
-                style={{
-                  margin: '6px 0 0 18px',
-                  padding: 0,
-                  color: 'var(--text-primary)',
-                  fontSize: '12px',
-                }}
-              >
-                {(pb.rules || []).map((r, i) => (
-                  <li key={i}>{r}</li>
-                ))}
-              </ul>
+              {(pb.rules || []).length > 0 ? (
+                <ul className="rule-list">
+                  {(pb.rules || []).map((r, i) => (
+                    <li key={i}>{r}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '6px 0 0 0' }}>No checklist rules yet — edit this playbook to add some.</p>
+              )}
             </div>
           </div>
         ))}
@@ -583,19 +572,3 @@ function Modal({ title, children, onClose }) {
 }
 
 const labelStyle = { display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' };
-const iconBtn = {
-  background: 'var(--bg-main)',
-  border: '1px solid var(--border-color)',
-  borderRadius: '6px',
-  color: 'var(--text-bright)',
-  cursor: 'pointer',
-  fontSize: '13px',
-  padding: '4px 8px',
-};
-const miniBadge = {
-  backgroundColor: '#0d47a1',
-  color: '#d1d4dc',
-  fontSize: '11px',
-  padding: '3px 8px',
-  borderRadius: '4px',
-};
