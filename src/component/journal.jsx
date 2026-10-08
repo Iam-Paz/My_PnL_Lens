@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote } from 'lucide-react';
 import { toDate } from '../utils/dateUtils';
 import { parseCSVToTrades } from '../utils/csvParser';
@@ -48,6 +48,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const setupOptions=['Untagged',...playbooks.map(p=>p.title)];
   const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', setup:'Untagged', notes:'', openTime:todayLocal() });
   const fileInputRef=useRef(null); const screenshotRef=useRef(null);
+  useEffect(()=>{ if(!isModalOpen&&!isDetailOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen]);
   function displayLocal(val){ return formatToLocalTime(val, brokerUtcOffset); }
   const handleImportClick=()=>fileInputRef.current.click();
   const handleFileUpload=(event)=>{
@@ -190,7 +191,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
 
       {isModalOpen && (
         <div style={overlayStyle}>
-          <div className="ts-card modal-mobile" style={{width:'520px',maxWidth:'92%',backgroundColor:'var(--bg-surface)'}}>
+          <div className="ts-card modal-mobile" style={{margin:'auto',width:'520px',maxWidth:'92%',backgroundColor:'var(--bg-surface)'}}>
             <h2 style={{marginTop:0,marginBottom:'20px',fontSize:'18px',display:'flex',alignItems:'center',gap:'8px'}}><Plus size={18} /> Log Manual Trade</h2>
             <form onSubmit={handleFormSubmit}>
               <div className="modal-mobile-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
@@ -217,7 +218,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
 
       {isDetailOpen && editingTrade && (
         <div style={overlayStyle}>
-          <div className="ts-card modal-mobile" style={{width:'720px',maxWidth:'96%',maxHeight:'90vh',overflowY:'auto',backgroundColor:'var(--bg-surface)'}}>
+          <div className="ts-card modal-mobile" style={{margin:'auto',width:'720px',maxWidth:'96%',maxHeight:'90vh',overflowY:'auto',backgroundColor:'var(--bg-surface)'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'16px'}}>
               <div>
                 <h2 style={{margin:0,fontSize:'18px'}}>{editingTrade.symbol} — Trade Detail</h2>
@@ -293,4 +294,4 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   );
 }
 const labelStyle={display:'block',fontSize:'12px',color:'var(--text-secondary)',marginBottom:'4px'};
-const overlayStyle={position:'fixed',inset:0,backgroundColor:'rgba(0,0,0,0.8)',backdropFilter:'blur(4px)',display:'flex',justifyContent:'center',alignItems:'center',zIndex:1000};
+const overlayStyle={position:'fixed',inset:0,backgroundColor:'rgba(0,0,0,0.8)',backdropFilter:'blur(4px)',display:'flex',overflowY:'auto',padding:'24px 12px',zIndex:2000};

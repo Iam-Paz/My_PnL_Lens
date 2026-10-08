@@ -41,6 +41,12 @@ export default function ShareCard({ trades = [], settings, onClose }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // Lock background scroll while the share modal is open (phones).
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
   const handleDownload = async () => {
     if (!cardRef.current || generating) return;
     setGenerating(true);
@@ -160,14 +166,14 @@ const overlayStyle = {
   position: 'fixed',
   inset: 0,
   backgroundColor: 'rgba(0, 0, 0, 0.7)',
-  zIndex: 1200,
+  zIndex: 2000,
   display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  padding: '16px',
+  overflowY: 'auto',
+  padding: '24px 16px',
 };
 
 const modalStyle = {
+  margin: 'auto',
   backgroundColor: 'var(--bg-surface)',
   border: '1px solid var(--border-color)',
   borderRadius: '12px',

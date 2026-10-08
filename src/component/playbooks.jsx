@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Library, Target, BookOpen, Pencil, Shield, Plus, Save } from 'lucide-react';
 import { calculateTradeStats } from '../utils/tradeStats';
 
@@ -6,6 +6,12 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
   const [sortField, setSortField] = useState('netPnL');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  // Lock background scroll while a modal is open (phones).
+  useEffect(() => {
+    if (!isCreateOpen && !isEditOpen) return;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, [isCreateOpen, isEditOpen]);
   const [editing, setEditing] = useState(null);
 
   const [title, setTitle] = useState('');
@@ -541,14 +547,15 @@ function Modal({ title, children, onClose }) {
         backgroundColor: 'rgba(0,0,0,0.8)',
         backdropFilter: 'blur(4px)',
         display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 1000,
+        overflowY: 'auto',
+        padding: '24px 12px',
+        zIndex: 2000,
       }}
     >
       <div
         className="ts-card modal-mobile"
         style={{
+          margin: 'auto',
           width: '500px',
           maxWidth: '94%',
           maxHeight: '90vh',
