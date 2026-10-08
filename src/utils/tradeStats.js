@@ -6,6 +6,13 @@ export function parseTimestamp(str) {
   if (!str) return 0;
   const raw = String(str).trim();
 
+  // Date-only (manual trades): force LOCAL midnight, never UTC midnight
+  // (UTC midnight lands on the wrong day for negative-offset timezones).
+  if (/^\d{4}[-./]\d{2}[-./]\d{2}$/.test(raw)) {
+    const local = new Date(raw.replace(/\./g, '-').replace(/\//g, '-') + 'T00:00:00').getTime();
+    return isNaN(local) ? 0 : local;
+  }
+
   let time = new Date(raw).getTime();
   if (!isNaN(time)) return time;
 
@@ -223,6 +230,12 @@ export function formatToLocalTime(str, brokerUtcOffset = 2) {
     const fallback = new Date(raw);
     if (isNaN(fallback.getTime())) return raw;
     return `${fallback.getFullYear()}-${pad(fallback.getMonth() + 1)}-${pad(fallback.getDate())} ${pad(fallback.getHours())}:${pad(fallback.getMinutes())}`;
+  }
+
+  // Date-only values (manual trades) carry no time: show the day as-is instead
+  // of converting a fake midnight into the previous evening.
+  if (!/\d{2}:\d{2}/.test(raw)) {
+    return raw.replace(/\./g, '-').replace(/\//g, '-');
   }
 
   const utcMs = Date.UTC(
@@ -552,7 +565,7 @@ export function calculateRuleAdherenceStats(trades = [], playbooks = []) {
   for (const t of safeTrades) {
     // Find the playbook assigned to this trade
     const pb = safePlaybooks.find((p) => p.title === t.setup);
-    
+
     // If trade is Untagged, or playbook has no rules defined, ignore for this metric
     if (!pb || !pb.rules || pb.rules.length === 0) {
       continue;
@@ -564,7 +577,7 @@ export function calculateRuleAdherenceStats(trades = [], playbooks = []) {
     }
 
     const checked = Array.isArray(t.rulesChecked) ? t.rulesChecked : [];
-    
+
     // Check if every single playbook rule is present in the trade's checked rules list
     const followedAll = pbRules.every((rule) => checked.includes(rule));
 

@@ -51,8 +51,12 @@ function parseNumber(val) {
   let s = String(val).trim();
   if (!s) return 0;
   s = s.replace(/\s+/g, '').replace(/\$/g, '');
-  if (s.includes(',') && s.includes('.')) s = s.replace(/\./g, '').replace(',', '.');
-  else s = s.replace(',', '.');
+  // Both separators present: the LAST one is the decimal mark
+  // (US thousands "1,234.56" and EU decimals "1.234,56" both work).
+  if (s.includes(',') && s.includes('.')) {
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
+    else s = s.replace(/,/g, '');
+  } else s = s.replace(',', '.');
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : 0;
 }
@@ -63,17 +67,21 @@ function parseMT5Date(dateStr) {
   if (!s) return null;
   s = s.replace(/\//g, '-');
 
+  // NOTE: returns broker WALL time (no 'Z', no UTC shift). formatToLocalTime()
+  // applies the broker offset exactly once at display, so parsing must not shift.
   const m = s.match(
     /^(\d{4})[.-](\d{2})[.-](\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/
   );
   if (m) {
     const [, y, mo, d, hh = '00', mm = '00', ss = '00'] = m;
-    const dt = new Date(`${y}-${mo}-${d}T${hh}:${mm}:${ss}`);
-    return isNaN(dt.getTime()) ? null : dt.toISOString();
+    return `${y}-${mo}-${d}T${hh}:${mm}:${ss}`;
   }
 
+  // Last resort: let Date parse it, then keep its LOCAL wall parts as-is.
   const dt2 = new Date(s.replace(/\./g, '-').replace(' ', 'T'));
-  return isNaN(dt2.getTime()) ? null : dt2.toISOString();
+  if (isNaN(dt2.getTime())) return null;
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${dt2.getFullYear()}-${pad(dt2.getMonth() + 1)}-${pad(dt2.getDate())}T${pad(dt2.getHours())}:${pad(dt2.getMinutes())}:${pad(dt2.getSeconds())}`;
 }
 
 function looksLikeSymbol(v) {

@@ -23,13 +23,14 @@ function normalizeType(raw){
   if (s.includes('buy') || s.includes('long')) return 'buy';
   return 'buy';
 }
+function todayLocal(){ const d=new Date(); const p=(n)=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`; }
 function cleanNumber(val){
   if (val===undefined||val===null) return 0;
   let s=String(val).trim(); if(!s) return 0;
   s=s.replace(/["'\s$€£₦]/g,'');
   if(s.startsWith('(')&&s.endsWith(')')) s='-'+s.slice(1,-1);
   s=s.replace(/[\u2012\u2013\u2014\u2015\u2212]/g,'-');
-  if(s.includes(',')&&s.includes('.')) s=s.replace(/,/g,'');
+  if(s.includes(',')&&s.includes('.')){ if(s.lastIndexOf(',')>s.lastIndexOf('.')) s=s.replace(/\./g,'').replace(',','.'); else s=s.replace(/,/g,''); }
   else if(s.includes(',')&&!s.includes('.')) s=s.replace(',', '.');
   const match=s.match(/-?\d+(\.\d+)?/);
   return match?parseFloat(match[0])||0:0;
@@ -45,7 +46,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const [filterSetup,setFilterSetup]=useState('all');
   const [sortOrder,setSortOrder]=useState('newest');
   const setupOptions=['Untagged',...playbooks.map(p=>p.title)];
-  const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', setup:'Untagged', notes:'', openTime:new Date().toISOString().slice(0,10) });
+  const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', setup:'Untagged', notes:'', openTime:todayLocal() });
   const fileInputRef=useRef(null); const screenshotRef=useRef(null);
   function displayLocal(val){ return formatToLocalTime(val, brokerUtcOffset); }
   const handleImportClick=()=>fileInputRef.current.click();
@@ -82,7 +83,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
     e.preventDefault(); const id=String(Date.now()); const open=formData.openTime; const dir=normalizeType(formData.type);
     const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:'', symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null };
     setTrades([newTrade,...trades]); setIsModalOpen(false);
-    setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', setup:'Untagged', notes:'', openTime:new Date().toISOString().slice(0,10) });
+    setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', setup:'Untagged', notes:'', openTime:todayLocal() });
   };
   // Retagging clears rule ticks — they belong to the previous playbook's rule set.
   const handleTagChange=(id,newSetup)=>setTrades(trades.map(t=>t.id===id?{...t,setup:newSetup,rulesChecked:[]}:t));
@@ -192,7 +193,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
           <div className="ts-card modal-mobile" style={{width:'520px',maxWidth:'92%',backgroundColor:'var(--bg-surface)'}}>
             <h2 style={{marginTop:0,marginBottom:'20px',fontSize:'18px',display:'flex',alignItems:'center',gap:'8px'}}><Plus size={18} /> Log Manual Trade</h2>
             <form onSubmit={handleFormSubmit}>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
+              <div className="modal-mobile-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
                 <div><label style={labelStyle}>Date</label><input type="date" className="ts-input" value={formData.openTime} onChange={e=>setFormData({...formData,openTime:e.target.value})} required /></div>
                 <div><label style={labelStyle}>Symbol</label><input type="text" className="ts-input" value={formData.symbol} onChange={e=>setFormData({...formData,symbol:e.target.value})} required /></div>
                 <div><label style={labelStyle}>Direction</label><select className="ts-input" value={formData.type} onChange={e=>setFormData({...formData,type:e.target.value})}><option value="buy">BUY</option><option value="sell">SELL</option></select></div>
@@ -226,7 +227,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
             </div>
             <form onSubmit={handleSaveDetail}>
               <p style={{fontSize:'11px',color:'var(--text-muted)',marginTop:0}}>Open/Close fields below are raw broker server time (not converted). Table shows local time.</p>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
+              <div className="modal-mobile-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
                 <div><label style={labelStyle}>Ticket</label><input type="text" className="ts-input" value={editingTrade.ticket||''} onChange={e=>handleDetailChange('ticket',e.target.value)} /></div>
                 <div><label style={labelStyle}>Open Time (broker)</label><input type="text" className="ts-input" value={editingTrade.openTime||''} onChange={e=>handleDetailChange('openTime',e.target.value)} /></div>
                 <div><label style={labelStyle}>Close Time (broker)</label><input type="text" className="ts-input" value={editingTrade.closeTime||''} onChange={e=>handleDetailChange('closeTime',e.target.value)} /></div>

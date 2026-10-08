@@ -66,6 +66,31 @@ function sanitizeAppName(value) {
   return (value || '').replace(/[^a-zA-Z0-9]/g, '');
 }
 
+// One-time repair for CSV imports stored before the wall-time fix: their openAt/
+// closeAt instants were shifted by the browser UTC offset at import. This adds
+// the offset back once (stored values lose their 'Z', so it never re-runs).
+function migrateCsvTimestamps(trades) {
+  if (!Array.isArray(trades) || trades.length === 0) return Array.isArray(trades) ? trades : [];
+  const shiftMs = -new Date().getTimezoneOffset() * 60000;
+  const pad = (n) => String(n).padStart(2, '0');
+  return trades.map((t) => {
+    if (!t || t.source !== 'MT5_CSV') return t;
+    let nt = t;
+    let openMigrated = false;
+    for (const k of ['openAt', 'openTime', 'closeAt', 'closeTime']) {
+      const v = t[k];
+      if (typeof v !== 'string' || !/Z$/.test(v)) continue;
+      const d = new Date(v);
+      if (isNaN(d.getTime())) continue;
+      const w = new Date(d.getTime() + shiftMs);
+      nt = { ...nt, [k]: `${w.getUTCFullYear()}-${pad(w.getUTCMonth() + 1)}-${pad(w.getUTCDate())}T${pad(w.getUTCHours())}:${pad(w.getUTCMinutes())}:${pad(w.getUTCSeconds())}` };
+      if (k === 'openAt') openMigrated = true;
+    }
+    if (openMigrated) nt = { ...nt, date: String(nt.openAt).slice(0, 10) };
+    return nt;
+  });
+}
+
 // Every account guaranteed the full shape: { id, name, trades[], settings }.
 function loadInitialAccounts() {
   const stored = readJSON(STORAGE_KEYS.accounts, null);
@@ -73,7 +98,7 @@ function loadInitialAccounts() {
     return stored.map((a) => ({
       id: a.id || ('acc-' + Math.random().toString(36).slice(2)),
       name: a.name || 'Account',
-      trades: Array.isArray(a.trades) ? a.trades : [],
+      trades: migrateCsvTimestamps(Array.isArray(a.trades) ? a.trades : []),
       settings: { ...DEFAULT_ACCOUNT_SETTINGS, ...(a.settings || {}) },
     }));
   }
@@ -83,7 +108,7 @@ function loadInitialAccounts() {
     const legacySettings = readJSON(STORAGE_KEYS.legacySettings, {});
     return [{
       ...createAccount('Account 1'),
-      trades: legacyTrades,
+      trades: migrateCsvTimestamps(legacyTrades),
       settings: { ...DEFAULT_ACCOUNT_SETTINGS, ...(legacySettings || {}) },
     }];
   }
@@ -388,7 +413,7 @@ export default function App() {
           {activeTab === 'journal' && <Journal trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} logActivity={logActivity} settings={settings} />}
           {activeTab === 'analytics' && <Analytics trades={trades} playbooks={playbooks} settings={settings} />}
           {activeTab === 'playbooks' && <Playbooks trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} setPlaybooks={setPlaybooks} />}
-          {activeTab === 'imports' && <Imports trades={trades} setTrades={updateActiveAccountTrades} logActivity={logActivity} activityLog={activityLog} clearActivityLog={clearActivityLog} />}
+          {activeTab === 'imports' && <Imports trades={trades} setTrades={updateActiveAccountTrades} logActivity={logActivity} activityLog={activityLog} clearActivityLog={clearActivityLog} settings={settings} />}
           {activeTab === 'feedback' && <Feedback />}
           {activeTab === 'settings' && (
             <Settings

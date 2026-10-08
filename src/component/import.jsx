@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Package, FileText, TriangleAlert, ScrollText, Download, Upload } from 'lucide-react';
 import { parseCSVToTrades } from '../utils/csvParser';
-import { formatDateTime, toDate } from '../utils/dateUtils';
+import { toDate } from '../utils/dateUtils';
+import { formatToLocalTime } from '../utils/tradeStats';
 
 export default function Imports({
   trades = [],
@@ -9,10 +10,12 @@ export default function Imports({
   logActivity,
   activityLog = [],
   clearActivityLog,
+  settings,
 }) {
   const [parsedPreview, setParsedPreview] = useState(null);
   const [fileName, setFileName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const brokerUtcOffset = settings?.brokerUtcOffset ?? 2;
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -83,6 +86,7 @@ export default function Imports({
     };
 
     reader.readAsText(file);
+    e.target.value = ''; // allow picking the same file again
   };
 
   const confirmImport = () => {
@@ -234,7 +238,7 @@ export default function Imports({
                           {t.brokerId || t.ticket}
                         </td>
                         <td style={{ padding: '10px 14px' }}>
-                          {t.openAt ? formatDateTime(t.openAt) : t.openTime || '—'}
+                          {formatToLocalTime(t.openAt || t.openTime, brokerUtcOffset)}
                         </td>
                         <td style={{ padding: '10px 14px', fontWeight: 700 }}>{t.symbol}</td>
                         <td
@@ -307,7 +311,7 @@ export default function Imports({
               >
                 <span>
                   <strong>{log.type === 'import' ? <><Download size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Imported</> : <><Upload size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Exported</>}</strong>{' '}
-                  {log.tradeCount} trades ({log.filename})
+                  {log.tradeCount} trade{log.tradeCount === 1 ? '' : 's'} ({log.filename})
                 </span>
                 <span style={{ color: 'var(--text-secondary)' }}>
                   {new Date(log.timestamp).toLocaleString()}

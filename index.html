@@ -15,7 +15,7 @@
           var saved = localStorage.getItem('mypnllens_theme');
           var skin = 'dark';
           if (saved === 'light') skin = 'light';
-          else if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) skin = 'light';
+          else if ((!saved || saved === 'system') && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) skin = 'light';
           document.documentElement.setAttribute('data-theme', skin);
         } catch (e) { /* fresh dark default */ }
       })();
