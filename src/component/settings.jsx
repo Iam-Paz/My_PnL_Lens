@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun, TrendingUp, Monitor } from 'lucide-react';
+import { SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun, TrendingUp, Monitor, Download, Upload, TriangleAlert, CircleCheck, CircleX } from 'lucide-react';
 import { THEME_MODES } from '../utils/themeConfig.js';
+import { buildBackup, backupSummary, downloadBackup, backupFileName, parseBackup, applyBackup } from '../utils/backup.js';
 
 export default function Settings({
   settings,
@@ -36,6 +37,64 @@ export default function Settings({
     e.preventDefault();
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 2000);
+  };
+
+  // ---- Backup & Restore (full-device JSON) ----
+  const [backupOk, setBackupOk] = useState('');
+  const [backupErr, setBackupErr] = useState('');
+  const [pending, setPending] = useState(null); // { backup, summary, fileName }
+
+  const clearBackupMsgs = () => { setBackupOk(''); setBackupErr(''); };
+
+  const handleExportBackup = () => {
+    clearBackupMsgs();
+    setPending(null);
+    try {
+      const b = buildBackup();
+      const s = backupSummary(b);
+      downloadBackup(b, backupFileName());
+      setBackupOk(`Backup downloaded (${s.accounts} account${s.accounts === 1 ? '' : 's'}, ${s.trades} trades, ${s.playbooks} playbooks)`);
+    } catch (err) {
+      console.error(err);
+      setBackupErr('Export failed: ' + (err?.message || 'unknown error'));
+    }
+  };
+
+  const handleBackupFile = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow picking the same file again
+    if (!file) return;
+    clearBackupMsgs();
+    setPending(null);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const b = parseBackup(ev.target.result);
+        setPending({ backup: b, summary: backupSummary(b), fileName: file.name });
+      } catch (err) {
+        setBackupErr(err?.message || 'Could not read backup file.');
+      }
+    };
+    reader.onerror = () => setBackupErr('Could not read that file.');
+    reader.readAsText(file);
+  };
+
+  const cancelRestore = () => { setPending(null); clearBackupMsgs(); };
+
+  const confirmRestore = () => {
+    if (!pending) return;
+    const s = pending.summary;
+    const when = s.exportedAt ? new Date(s.exportedAt).toLocaleString() : 'unknown date';
+    if (!confirm(`Restore backup "${pending.fileName}"?\n\nThis REPLACES all data on this device with:\n- ${s.accounts} accounts, ${s.trades} trades, ${s.playbooks} playbooks\n- Exported: ${when}\n\nYour current data is auto-downloaded first as a safety copy.`)) return;
+    try {
+      downloadBackup(buildBackup(), backupFileName('mypnl-lens-pre-restore'));
+      applyBackup(pending.backup);
+      alert('Backup restored. The app will now reload.');
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      setBackupErr('Restore failed: ' + (err?.message || 'unknown error'));
+    }
   };
 
   return (
@@ -180,6 +239,59 @@ export default function Settings({
           {savedMsg && <span style={{ color: 'var(--color-win)', fontSize: '14px' }}>Saved for {accountName}!</span>}
         </div>
       </form>
+
+      <div className="ts-card" style={{ maxWidth: '520px', marginBottom: '16px' }}>
+        <h3 style={sectionTitle}>Backup & Restore</h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: 0 }}>
+          One JSON file holds <strong style={{ color: 'var(--text-bright)' }}>everything</strong>: all accounts, trades, playbooks, tickets and preferences. Export before big changes or a new device.
+        </p>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button type="button" onClick={handleExportBackup} className="ts-btn ts-btn-primary">
+            <Download size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Export Backup
+          </button>
+          <input
+            type="file"
+            accept=".json,application/json"
+            onChange={handleBackupFile}
+            id="backup-file-input"
+            style={{ display: 'none' }}
+          />
+          <label htmlFor="backup-file-input" className="ts-btn" style={{ cursor: 'pointer', display: 'inline-block' }}>
+            <Upload size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Import Backup
+          </label>
+        </div>
+        {backupOk && (
+          <p style={{ color: 'var(--color-win)', fontSize: '13px', marginBottom: 0 }}>
+            <CircleCheck size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{backupOk}
+          </p>
+        )}
+        {backupErr && (
+          <p style={{ color: 'var(--color-loss)', fontSize: '13px', marginBottom: 0 }}>
+            <CircleX size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{backupErr}
+          </p>
+        )}
+        {pending && (
+          <div style={{ marginTop: '14px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px 14px', backgroundColor: 'var(--bg-main)' }}>
+            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-bright)', marginBottom: '4px' }}>
+              {pending.fileName}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+              {pending.summary.accounts} accounts · {pending.summary.trades} trades · {pending.summary.playbooks} playbooks
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+              Exported: {pending.summary.exportedAt ? new Date(pending.summary.exportedAt).toLocaleString() : 'unknown date'}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--color-amber-text)', marginBottom: '12px' }}>
+              <TriangleAlert size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
+              Restoring replaces ALL data on this device. Your current data is auto-downloaded first as a safety copy.
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button type="button" onClick={cancelRestore} className="ts-btn ts-btn-ghost">Cancel</button>
+              <button type="button" onClick={confirmRestore} className="ts-btn ts-btn-danger">Restore This Backup</button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <div className="ts-card" style={{ maxWidth: '520px', border: '1px solid #7f1d1d' }}>
         <h3 style={{ ...sectionTitle, color: 'var(--color-loss)' }}>Danger Zone</h3>
