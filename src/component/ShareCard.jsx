@@ -14,7 +14,7 @@ const SHARE_PERIODS = [
   { id: 'all', label: 'All Time' },
 ];
 
-export default function ShareCard({ trades = [], settings, onClose }) {
+export default function ShareCard({ trades = [], settings, brandName = 'My_PnL_Lens', onClose }) {
   const [period, setPeriod] = useState('30d');
   const [hideAmounts, setHideAmounts] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -100,7 +100,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
           <div ref={cardRef} style={cardStyle}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <span style={{ fontFamily: "'Space Grotesk', 'Inter', sans-serif", fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>
-                My_PnL_Lens
+                {brandName}
               </span>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#788296', backgroundColor: '#0b0e14', border: '1px solid #232836', borderRadius: '20px', padding: '4px 12px' }}>
                 {periodLabel}
@@ -132,7 +132,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#4a5468' }}>
-              <span><TrendingUp size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Made with My_PnL_Lens</span>
+              <span><TrendingUp size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Made with {brandName}</span>
               <span>{new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
           </div>
@@ -145,7 +145,7 @@ export default function ShareCard({ trades = [], settings, onClose }) {
             onChange={(e) => setHideAmounts(e.target.checked)}
             style={{ width: '18px', height: '18px', accentColor: '#2962ff', cursor: 'pointer' }}
           />
-          <Lock size={16} /> Hide $ amounts (show % only)
+          <Lock size={16} /> Hide {sym} amounts (show % only)
         </label>
 
         <button

@@ -271,7 +271,7 @@ export function calculateSessionStats(trades, brokerUtcOffsetHours = 2) {
   const SESSIONS = ['Asia', 'London', 'London/NY Overlap', 'New York', 'Off-Hours'];
   const buckets = {};
   for (const s of SESSIONS) {
-    buckets[s] = { name: s, count: 0, wins: 0, pnl: 0, grossProfit: 0, grossLoss: 0 };
+    buckets[s] = { name: s, count: 0, wins: 0, losses: 0, pnl: 0, grossProfit: 0, grossLoss: 0 };
   }
 
   for (const t of trades || []) {
@@ -286,6 +286,7 @@ export function calculateSessionStats(trades, brokerUtcOffsetHours = 2) {
       buckets[session].wins += 1;
       buckets[session].grossProfit += pnl;
     } else if (pnl < 0) {
+      buckets[session].losses += 1;
       buckets[session].grossLoss += Math.abs(pnl);
     }
   }
@@ -294,7 +295,7 @@ export function calculateSessionStats(trades, brokerUtcOffsetHours = 2) {
     const b = buckets[name];
     const winRate = b.count > 0 ? ((b.wins / b.count) * 100).toFixed(1) : '0.0';
     const avgWin = b.wins > 0 ? b.grossProfit / b.wins : 0;
-    const lossCount = b.count - b.wins;
+    const lossCount = b.losses; // breakevens are neither wins nor losses
     const avgLoss = lossCount > 0 ? b.grossLoss / lossCount : 0;
     const pf =
       b.grossLoss > 0

@@ -51,6 +51,9 @@ const TAB_TITLES = {
   feedback: 'Support', settings: 'Settings',
 };
 
+// Currency code -> symbol (passed down to Playbooks; Dashboard/journal map their own).
+const CUR = { USD: '$', EUR: '€', GBP: '£', NGN: '₦' };
+
 function readJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -409,10 +412,10 @@ export default function App() {
         </header>
 
         <main className="ts-main" style={{ flex: 1, minWidth: 0, padding: '32px 40px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
-          {activeTab === 'dashboard' && <Dashboard trades={trades} settings={settings} />}
+          {activeTab === 'dashboard' && <Dashboard trades={trades} settings={settings} brandName={appName} />}
           {activeTab === 'journal' && <Journal trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} logActivity={logActivity} settings={settings} />}
           {activeTab === 'analytics' && <Analytics trades={trades} playbooks={playbooks} settings={settings} />}
-          {activeTab === 'playbooks' && <Playbooks trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} setPlaybooks={setPlaybooks} />}
+          {activeTab === 'playbooks' && <Playbooks trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} setPlaybooks={setPlaybooks} currency={CUR[settings.currency] || '$'} />}
           {activeTab === 'imports' && <Imports trades={trades} setTrades={updateActiveAccountTrades} logActivity={logActivity} activityLog={activityLog} clearActivityLog={clearActivityLog} settings={settings} />}
           {activeTab === 'feedback' && <Feedback />}
           {activeTab === 'settings' && (

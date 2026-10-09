@@ -25,7 +25,7 @@ function getTradePnL(t) {
   return Number(t.pnl ?? t.profit) || 0;
 }
 
-export default function Dashboard({ trades = [], settings }) {
+export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_Lens' }) {
   const cfg = settings || {
     startingBalance: 10000,
     riskPerTrade: 1,
@@ -223,7 +223,7 @@ export default function Dashboard({ trades = [], settings }) {
           <input
             type="month"
             value={calMonth}
-            onChange={(e) => setCalMonth(e.target.value)}
+            onChange={(e) => { if (e.target.value) setCalMonth(e.target.value); }}
             className="ts-input"
             style={{ width: 'auto' }}
           />
@@ -237,7 +237,6 @@ export default function Dashboard({ trades = [], settings }) {
 
       <SectionTitle>Performance Analytics</SectionTitle>
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '28px' }}>
-        <Stat label="Trade Win Rate" value={`${stats.winRate}%`} color="var(--color-sky)" />
         <Stat label="Winning Days Rate" value={`${stats.winningDaysRate}%`} color="var(--color-sky)" />
         <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
         <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
@@ -305,19 +304,12 @@ export default function Dashboard({ trades = [], settings }) {
 
       <SectionTitle>Trade Statistics</SectionTitle>
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
-        <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
-        <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
         <Stat label="Largest Winning Streak" value={<span style={streakValueStyle}>{stats.longestWinStreak} <Flame size={16} /></span>} color="var(--color-win)" />
         <Stat label="Largest Losing Streak" value={<span style={streakValueStyle}>{stats.longestLossStreak} <Snowflake size={16} /></span>} color="var(--color-loss)" />
         <Stat label="Average Trade" value={fmt(stats.avgTrade, sym, true)} />
-        <Stat label="Average Winner" value={fmt(stats.avgWin, sym, true)} color="var(--color-win)" />
-        <Stat label="Average Loser" value={fmt(-stats.avgLoss, sym, true)} color="var(--color-loss)" />
-        <Stat label="Total Trades" value={stats.totalTrades} />
-        <Stat label="Total Winners" value={stats.winners} color="var(--color-win)" />
-        <Stat label="Total Losers" value={stats.losers} color="var(--color-loss)" />
       </div>
 
-      {shareOpen && <ShareCard trades={trades} settings={cfg} onClose={() => setShareOpen(false)} />}
+      {shareOpen && <ShareCard trades={trades} settings={cfg} brandName={brandName} onClose={() => setShareOpen(false)} />}
     </div>
   );
 }
@@ -404,7 +396,8 @@ function buildWeeklySummary(trades) {
 }
 
 function CalendarGrid({ monthStr, dailyMap, sym }) {
-  const [y, m] = monthStr.split('-').map(Number);
+  let [y, m] = (monthStr || '').split('-').map(Number);
+  if (!y || !m) { const t = new Date(); y = t.getFullYear(); m = t.getMonth() + 1; }
   const year = y, month = m - 1;
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDay = new Date(year, month, 1).getDay();

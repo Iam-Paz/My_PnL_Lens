@@ -28,12 +28,20 @@ export default function Feedback() {
   // Uses the shared key (not the legacy tradersstack_* one) so the startup
   // migration can't sweep these away on reload.
   const [myTickets, setMyTickets] = useState(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.myTickets);
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.myTickets);
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return []; // corrupt storage must never crash the Support page
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.myTickets, JSON.stringify(myTickets));
+    try {
+      localStorage.setItem(STORAGE_KEYS.myTickets, JSON.stringify(myTickets));
+    } catch { /* storage full/blocked */ }
   }, [myTickets]);
 
   const handleChange = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));

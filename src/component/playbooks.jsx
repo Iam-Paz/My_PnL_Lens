@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Library, Target, BookOpen, Pencil, Shield, Plus, Save } from 'lucide-react';
 import { calculateTradeStats } from '../utils/tradeStats';
 
-export default function Playbooks({ trades = [], setTrades, playbooks = [], setPlaybooks }) {
+export default function Playbooks({ trades = [], setTrades, playbooks = [], setPlaybooks, currency = '$' }) {
   const [sortField, setSortField] = useState('netPnL');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -66,9 +66,26 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
       description: editing.description,
       rules: (editing.rules || []).filter((r) => r.trim() !== ''),
     };
+    // Old rules by position (pre-update) so journal check-ticks follow reworded rules.
+    const prev = playbooks.find((p) => p.id === updated.id);
+    const oldRules = prev?.rules || [];
+    const remapChecked = (checked) => {
+      if (!Array.isArray(checked)) return [];
+      return checked
+        .map((c) => {
+          const idx = oldRules.indexOf(c);
+          if (idx === -1) return c; // tick on unknown text: keep as-is
+          return idx < updated.rules.length ? updated.rules[idx] : null; // removed: drop it
+        })
+        .filter((c) => c !== null && c !== '');
+    };
     setPlaybooks(playbooks.map((p) => (p.id === updated.id ? updated : p)));
-    if (orig !== newTitle && setTrades) {
-      setTrades(trades.map((t) => (t.setup === orig ? { ...t, setup: newTitle } : t)));
+    if (setTrades) {
+      setTrades(trades.map((t) => (
+        t.setup === orig
+          ? { ...t, setup: newTitle, rulesChecked: remapChecked(t.rulesChecked) }
+          : t
+      )));
     }
     setIsEditOpen(false);
     setEditing(null);
@@ -179,7 +196,7 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
             style={{ width: 'auto', padding: '4px 8px' }}
           >
             <option value="netPnL">Net P&L</option>
-            <option value="expectancy">Expectancy ($)</option>
+            <option value="expectancy">Expectancy ({currency})</option>
             <option value="winRate">Win Rate %</option>
             <option value="avgR">Avg R</option>
             <option value="profitFactor">Profit Factor</option>
@@ -241,13 +258,13 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
                       color: row.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)',
                     }}
                   >
-                    {row.netPnL >= 0 ? `+$${row.netPnL.toFixed(2)}` : `-$${Math.abs(row.netPnL).toFixed(2)}`}
+                    {row.netPnL >= 0 ? `+${currency}${row.netPnL.toFixed(2)}` : `-${currency}${Math.abs(row.netPnL).toFixed(2)}`}
                   </td>
                   <td className="number-font" style={{ color: 'var(--color-win)' }}>
-                    {row.wins > 0 ? `+$${row.avgWin.toFixed(2)}` : '—'}
+                    {row.wins > 0 ? `+${currency}${row.avgWin.toFixed(2)}` : '—'}
                   </td>
                   <td className="number-font" style={{ color: 'var(--color-loss)' }}>
-                    {row.losses > 0 ? `-$${row.avgLoss.toFixed(2)}` : '—'}
+                    {row.losses > 0 ? `-${currency}${row.avgLoss.toFixed(2)}` : '—'}
                   </td>
                   <td className="number-font" style={{ color: row.avgR >= 0 ? 'var(--color-sky)' : 'var(--color-loss)' }}>
                     {row.countWithR > 0 ? `${row.avgR > 0 ? '+' : ''}${row.avgR}R` : '—'}
@@ -260,13 +277,13 @@ export default function Playbooks({ trades = [], setTrades, playbooks = [], setP
                       color: row.expectancy >= 0 ? 'var(--color-win)' : 'var(--color-loss)',
                     }}
                   >
-                    {row.expectancy >= 0 ? `+$${row.expectancy.toFixed(2)}` : `-$${Math.abs(row.expectancy).toFixed(2)}`}
+                    {row.expectancy >= 0 ? `+${currency}${row.expectancy.toFixed(2)}` : `-${currency}${Math.abs(row.expectancy).toFixed(2)}`}
                   </td>
                   <td className="number-font" style={{ color: 'var(--color-win)' }}>
-                    {row.bestTradePnl > 0 ? `+$${row.bestTradePnl.toFixed(2)}` : '—'}
+                    {row.bestTradePnl > 0 ? `+${currency}${row.bestTradePnl.toFixed(2)}` : '—'}
                   </td>
                   <td className="number-font" style={{ color: 'var(--color-loss)' }}>
-                    {row.worstTradePnl < 0 ? `-$${Math.abs(row.worstTradePnl).toFixed(2)}` : '—'}
+                    {row.worstTradePnl < 0 ? `-${currency}${Math.abs(row.worstTradePnl).toFixed(2)}` : '—'}
                   </td>
                 </tr>
               ))}
