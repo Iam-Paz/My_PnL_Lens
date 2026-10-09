@@ -38,6 +38,7 @@ function cleanNumber(val){
 
 export default function Journal({ trades=[], setTrades, playbooks=[], logActivity, settings }){
   const brokerUtcOffset = settings?.brokerUtcOffset ?? 2;
+  const sym = ({ USD: '$', EUR: '€', GBP: '£', NGN: '₦' })[settings?.currency] || '$';
   const [isModalOpen,setIsModalOpen]=useState(false);
   const [isDetailOpen,setIsDetailOpen]=useState(false);
   const [editingTrade,setEditingTrade]=useState(null);
@@ -170,7 +171,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                       <td className="num number-font">{trade.exitPrice||'—'}</td>
                       <td className="num number-font" style={{color:'var(--text-secondary)'}}>{comm?comm.toFixed(2):'—'}</td>
                       <td className="num number-font" style={{color:'var(--text-secondary)'}}>{swap?swap.toFixed(2):'—'}</td>
-                      <td className="num number-font" style={{fontWeight:700,color:p>=0?'var(--color-win)':'var(--color-loss)'}}>{p>=0?`+$${p.toFixed(2)}`:`-$${Math.abs(p).toFixed(2)}`}</td>
+                      <td className="num number-font" style={{fontWeight:700,color:p>=0?'var(--color-win)':'var(--color-loss)'}}>{p>=0?`+${sym}${p.toFixed(2)}`:`-${sym}${Math.abs(p).toFixed(2)}`}</td>
                       <td onClick={e=>e.stopPropagation()}>
                         <select value={trade.setup||'Untagged'} onChange={e=>handleTagChange(trade.id,e.target.value)} style={{backgroundColor:'var(--bg-main)',color:trade.setup==='Untagged'?'var(--text-muted)':'var(--accent-blue)',border:'1px solid var(--border-color)',borderRadius:'4px',padding:'4px 8px',fontSize:'12px',fontWeight:600}}>
                           {getOptionsForTrade(trade.setup).map(s=><option key={s} value={s}>{s}</option>)}
@@ -204,7 +205,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div><label style={labelStyle}>Stop Loss</label><input type="number" step="any" className="ts-input" value={formData.stopLoss} onChange={e=>setFormData({...formData,stopLoss:e.target.value})} /></div>
                 <div><label style={labelStyle}>Take Profit</label><input type="number" step="any" className="ts-input" value={formData.takeProfit} onChange={e=>setFormData({...formData,takeProfit:e.target.value})} /></div>
                 <div><label style={labelStyle}>Setup</label><select className="ts-input" value={formData.setup} onChange={e=>setFormData({...formData,setup:e.target.value})}>{setupOptions.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
-                <div><label style={labelStyle}>Profit / Loss ($)</label><input type="number" step="0.01" className="ts-input" value={formData.profit} onChange={e=>setFormData({...formData,profit:e.target.value})} required /></div>
+                <div><label style={labelStyle}>Profit / Loss ({sym})</label><input type="number" step="0.01" className="ts-input" value={formData.profit} onChange={e=>setFormData({...formData,profit:e.target.value})} required /></div>
               </div>
               <div style={{marginTop:'14px'}}><label style={labelStyle}>Notes (optional)</label><textarea rows="2" className="ts-input" value={formData.notes} onChange={e=>setFormData({...formData,notes:e.target.value})} placeholder="Plan, mistakes, lessons..." style={{resize:'vertical'}} /></div>
               <div style={{display:'flex',justifyContent:'flex-end',gap:'10px',marginTop:'24px'}}>
@@ -241,7 +242,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div><label style={labelStyle}>Exit</label><input type="number" step="any" className="ts-input" value={editingTrade.exitPrice??''} onChange={e=>handleDetailChange('exitPrice',e.target.value)} /></div>
                 <div><label style={labelStyle}>Commission</label><input type="number" step="any" className="ts-input" value={editingTrade.commission??''} onChange={e=>handleDetailChange('commission',e.target.value)} /></div>
                 <div><label style={labelStyle}>Swap</label><input type="number" step="any" className="ts-input" value={editingTrade.swap??''} onChange={e=>handleDetailChange('swap',e.target.value)} /></div>
-                <div><label style={labelStyle}>Net P&L ($)</label><input type="number" step="any" className="ts-input" value={editingTrade.profit??''} onChange={e=>handleDetailChange('profit',e.target.value)} /></div>
+                <div><label style={labelStyle}>Net P&L ({sym})</label><input type="number" step="any" className="ts-input" value={editingTrade.profit??''} onChange={e=>handleDetailChange('profit',e.target.value)} /></div>
                 <div><label style={labelStyle}>Playbook Setup</label><select className="ts-input" value={editingTrade.setup||'Untagged'} onChange={e=>{handleDetailChange('setup',e.target.value); setEditingTrade(prev=>({...prev,rulesChecked:[]}));}}>{getOptionsForTrade(editingTrade.setup).map(s=><option key={s} value={s}>{s}</option>)}</select></div>
               </div>
               {detailPlaybook && detailRules.length>0 && (

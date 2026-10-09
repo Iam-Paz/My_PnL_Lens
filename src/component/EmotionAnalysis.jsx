@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Brain } from 'lucide-react';
 import { calculateEmotionStats } from '../utils/tradeStats';
 
-export default function EmotionAnalysis({ trades = [] }) {
+export default function EmotionAnalysis({ trades = [], currency = '$' }) {
   const [sortField, setSortField] = useState('count');
 
   const emotionStats = useMemo(() => {
@@ -59,7 +59,7 @@ export default function EmotionAnalysis({ trades = [] }) {
             <option value="count">Most Tagged</option>
             <option value="netPnL">Net P&L</option>
             <option value="winRate">Win Rate %</option>
-            <option value="expectancy">Expectancy ($)</option>
+            <option value="expectancy">Expectancy ({currency})</option>
             <option value="avgR">Avg R</option>
             <option value="profitFactor">Profit Factor</option>
           </select>
@@ -123,13 +123,13 @@ export default function EmotionAnalysis({ trades = [] }) {
                       color: row.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)',
                     }}
                   >
-                    {row.netPnL >= 0 ? `+$${row.netPnL.toFixed(2)}` : `-$${Math.abs(row.netPnL).toFixed(2)}`}
+                    {row.netPnL >= 0 ? `+${currency}${row.netPnL.toFixed(2)}` : `-${currency}${Math.abs(row.netPnL).toFixed(2)}`}
                   </td>
                   <td className="number-font" style={{ color: 'var(--color-win)' }}>
-                    {row.wins > 0 ? `+$${row.avgWin.toFixed(2)}` : '—'}
+                    {row.wins > 0 ? `+${currency}${row.avgWin.toFixed(2)}` : '—'}
                   </td>
                   <td className="number-font" style={{ color: 'var(--color-loss)' }}>
-                    {row.losses > 0 ? `-$${row.avgLoss.toFixed(2)}` : '—'}
+                    {row.losses > 0 ? `-${currency}${row.avgLoss.toFixed(2)}` : '—'}
                   </td>
                   <td className="number-font" style={{ color: row.avgR >= 0 ? 'var(--color-sky)' : 'var(--color-loss)' }}>
                     {row.countWithR > 0 ? `${row.avgR > 0 ? '+' : ''}${row.avgR}R` : '—'}
@@ -142,7 +142,7 @@ export default function EmotionAnalysis({ trades = [] }) {
                       color: row.expectancy >= 0 ? 'var(--color-win)' : 'var(--color-loss)',
                     }}
                   >
-                    {row.expectancy >= 0 ? `+$${row.expectancy.toFixed(2)}` : `-$${Math.abs(row.expectancy).toFixed(2)}`}
+                    {row.expectancy >= 0 ? `+${currency}${row.expectancy.toFixed(2)}` : `-${currency}${Math.abs(row.expectancy).toFixed(2)}`}
                   </td>
                 </tr>
               ))

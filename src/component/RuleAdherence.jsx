@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { ClipboardList, Scale, ListChecks } from 'lucide-react';
 import { calculateRuleAdherenceStats } from '../utils/tradeStats';
 
-export default function RuleAdherence({ trades = [], playbooks = [] }) {
+export default function RuleAdherence({ trades = [], playbooks = [], currency = '$' }) {
   // 1. Calculate side-by-side performance stats
   const stats = useMemo(() => {
     return calculateRuleAdherenceStats(trades, playbooks);
@@ -82,7 +82,7 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
 
   // Render helper for currency formatting
   const fmtVal = (val, isPnL = false) => {
-    const formatted = val >= 0 ? `+$${val.toFixed(2)}` : `-$${Math.abs(val).toFixed(2)}`;
+    const formatted = val >= 0 ? `+${currency}${val.toFixed(2)}` : `-${currency}${Math.abs(val).toFixed(2)}`;
     if (!isPnL) return val.toFixed(2);
     return formatted;
   };
@@ -130,13 +130,13 @@ export default function RuleAdherence({ trades = [], playbooks = [] }) {
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>Avg Win</td>
-                <td className="number-font" style={{ color: 'var(--color-win)' }}>{p.wins > 0 ? `+$${p.avgWin.toFixed(2)}` : '—'}</td>
-                <td className="number-font" style={{ color: 'var(--color-win)' }}>{i.wins > 0 ? `+$${i.avgWin.toFixed(2)}` : '—'}</td>
+                <td className="number-font" style={{ color: 'var(--color-win)' }}>{p.wins > 0 ? `+${currency}${p.avgWin.toFixed(2)}` : '—'}</td>
+                <td className="number-font" style={{ color: 'var(--color-win)' }}>{i.wins > 0 ? `+${currency}${i.avgWin.toFixed(2)}` : '—'}</td>
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>Avg Loss</td>
-                <td className="number-font" style={{ color: 'var(--color-loss)' }}>{p.losses > 0 ? `-$${p.avgLoss.toFixed(2)}` : '—'}</td>
-                <td className="number-font" style={{ color: 'var(--color-loss)' }}>{i.losses > 0 ? `-$${i.avgLoss.toFixed(2)}` : '—'}</td>
+                <td className="number-font" style={{ color: 'var(--color-loss)' }}>{p.losses > 0 ? `-${currency}${p.avgLoss.toFixed(2)}` : '—'}</td>
+                <td className="number-font" style={{ color: 'var(--color-loss)' }}>{i.losses > 0 ? `-${currency}${i.avgLoss.toFixed(2)}` : '—'}</td>
               </tr>
               <tr>
                 <td style={{ fontWeight: 600 }}>Avg R-Multiple</td>

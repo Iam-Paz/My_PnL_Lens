@@ -232,12 +232,12 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
         />
         <Stat
           label="Best R"
-          value={rStats.countWithR ? `+${rStats.bestR}R` : '—'}
+          value={rStats.countWithR ? `${rStats.bestR >= 0 ? '+' : ''}${rStats.bestR}R` : '—'}
           color="var(--color-win)"
         />
         <Stat
           label="Worst R"
-          value={rStats.countWithR ? `${rStats.worstR}R` : '—'}
+          value={rStats.countWithR ? `${rStats.worstR >= 0 ? '+' : ''}${rStats.worstR}R` : '—'}
           color="var(--color-loss)"
         />
         <Stat
@@ -263,11 +263,11 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
 
       {/* ===== EMOTION & MINDSET PERFORMANCE ===== */}
       <SectionTitle>Behavioral Insights</SectionTitle>
-      <EmotionAnalysis trades={scoped} />
+      <EmotionAnalysis trades={scoped} currency={sym} />
 
       {/* ===== PLAYBOOK RULE ADHERENCE ===== */}
       <SectionTitle>Execution Discipline</SectionTitle>
-      <RuleAdherence trades={scoped} playbooks={playbooks} />
+      <RuleAdherence trades={scoped} playbooks={playbooks} currency={sym} />
 
       {/* ===== SESSION EDGE ===== */}
       <SectionTitle>
@@ -289,7 +289,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
                 <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
                 <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
                   {sessionChartData.map((s, i) => (
-                    <Cell key={i} fill={s.pnl >= 0 ? cc.blue : cc.down} />
+                    <Cell key={i} fill={s.pnl >= 0 ? cc.up : cc.down} />
                   ))}
                 </Bar>
               </BarChart>

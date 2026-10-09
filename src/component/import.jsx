@@ -16,6 +16,7 @@ export default function Imports({
   const [fileName, setFileName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const brokerUtcOffset = settings?.brokerUtcOffset ?? 2;
+  const sym = ({ USD: '$', EUR: '€', GBP: '£', NGN: '₦' })[settings?.currency] || '$';
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -263,7 +264,7 @@ export default function Imports({
                             color: pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)',
                           }}
                         >
-                          {pnl >= 0 ? '+' : ''}${pnl.toFixed(2)}
+                          {pnl >= 0 ? '+' : ''}{sym}{pnl.toFixed(2)}
                         </td>
                       </tr>
                     );

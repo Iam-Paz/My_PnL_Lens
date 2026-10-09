@@ -131,7 +131,7 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
 
   const renderDelta = (diff, formatFn, isPositiveGood = true) => {
     if (diff === 0 || isNaN(diff)) {
-      return <span style={{ color: 'var(--text-muted)' }}>0</span>;
+      return <span style={{ color: 'var(--text-muted)' }}>{formatFn ? formatFn(0) : '0'}</span>;
     }
     const isGood = isPositiveGood ? diff > 0 : diff < 0;
     const color = isGood ? 'var(--color-win)' : 'var(--color-loss)';
@@ -296,7 +296,7 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
             </tr>
 
             <tr>
-              <td style={{ fontWeight: 600 }}>Max Drawdown ($)</td>
+              <td style={{ fontWeight: 600 }}>Max Drawdown ({currency})</td>
               <td className="number-font" style={{ color: 'var(--color-loss)' }}>
                 {ddA.maxDrawdownDollars > 0 ? `-${currency}${ddA.maxDrawdownDollars.toFixed(2)}` : `${currency}0.00`}
               </td>
