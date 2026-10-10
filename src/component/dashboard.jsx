@@ -311,7 +311,6 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '28px' }}>
         <Stat label="Winning Days Rate" value={`${stats.winningDaysRate}%`} color="var(--color-sky)" />
         <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
-        <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-win)" />
         <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
         <Stat label="Trading Days Logged" value={stats.tradingDays} />
         <Stat label="Total Trades" value={stats.totalTrades} />
