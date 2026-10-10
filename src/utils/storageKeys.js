@@ -8,6 +8,7 @@ export const STORAGE_KEYS = {
   playbooks: 'mypnllens_playbooks',
   activityLog: 'mypnllens_activity_log',
   defaultPage: 'mypnllens_default_page',
+  lastTab: 'mypnllens_last_tab',
   displayName: 'mypnllens_display_name',
   sidebarCollapsed: 'mypnllens_sidebar_collapsed',
   myTickets: 'mypnllens_my_tickets',

@@ -12,6 +12,7 @@ const BACKUP_KEYS = [
   ['playbooks', STORAGE_KEYS.playbooks],
   ['activityLog', STORAGE_KEYS.activityLog],
   ['defaultPage', STORAGE_KEYS.defaultPage],
+  ['lastTab', STORAGE_KEYS.lastTab],
   ['displayName', STORAGE_KEYS.displayName],
   ['sidebarCollapsed', STORAGE_KEYS.sidebarCollapsed],
   ['myTickets', STORAGE_KEYS.myTickets],

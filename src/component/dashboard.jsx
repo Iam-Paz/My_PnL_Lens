@@ -208,7 +208,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
-                <XAxis dataKey="date" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+                <XAxis dataKey="date" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} minTickGap={28} tickFormatter={(v) => String(v).slice(5)} />
                 <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
                 <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
                 <Area type="monotone" dataKey="equity" stroke={cc.accent} strokeWidth={2.5} fill="url(#eq)" />
@@ -256,7 +256,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={weeklyData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
-                  <XAxis dataKey="week" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+                  <XAxis dataKey="week" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} minTickGap={28} tickFormatter={(v) => String(v).slice(5)} />
                   <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
                   <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
                   <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>

@@ -10,8 +10,6 @@ export default function Settings({
   resetCurrentAccountData,
   resetCurrentAccountEverything,
   resetAllAppData,
-  defaultPage = 'journal',
-  setDefaultPage,
   displayName = 'my',
   setDisplayName,
   appName = 'My_PnL_Lens',
@@ -134,23 +132,6 @@ export default function Settings({
             {' '}(letters & numbers only; empty becomes My_PnL_Lens)
           </span>
 
-          <label style={{ ...labelStyle, marginTop: '16px' }}>Default Page</label>
-          <select
-            className="ts-input"
-            value={defaultPage}
-            onChange={(e) => setDefaultPage?.(e.target.value)}
-          >
-            <option value="dashboard">Dashboard</option>
-            <option value="journal">Journal</option>
-            <option value="analytics">Analytics</option>
-            <option value="playbooks">Playbooks</option>
-            <option value="imports">Imports</option>
-            <option value="feedback">Feedback</option>
-            <option value="settings">Settings</option>
-          </select>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Opens on this page when you launch or refresh the app.
-          </span>
 
           <label style={{ ...labelStyle, marginTop: '16px' }}>Appearance</label>
           <div style={{ display: 'flex', gap: '6px' }}>

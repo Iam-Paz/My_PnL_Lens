@@ -24,8 +24,8 @@ import { SHOW_LOVE_URL } from './config.js';
 // the More tab in the bottom bar glows so the user knows where they are.
 const MORE_SHEET_TABS = ['playbooks', 'imports', 'accounts', 'feedback', 'settings'];
 
-// Pages the Default Page setting may point at (Settings offers these 7).
-const KNOWN_TABS = ['dashboard', 'journal', 'analytics', 'playbooks', 'imports', 'feedback', 'settings'];
+// Every tab the app can boot into (last-tab memory + legacy default-page fallback).
+const KNOWN_TABS = ['dashboard', 'journal', 'analytics', 'playbooks', 'imports', 'accounts', 'feedback', 'settings'];
 
 // Mobile bottom-bar tabs: 3 direct pages + the More sheet opener.
 const MOBILE_TABS = [
@@ -220,13 +220,6 @@ export default function App() {
   };
 
   // ---- Global personalization (persisted) ----
-  const [defaultPage, setDefaultPageState] = useState(() => {
-    try { return localStorage.getItem(STORAGE_KEYS.defaultPage) || 'journal'; } catch { return 'journal'; }
-  });
-  const setDefaultPage = (page) => {
-    setDefaultPageState(page);
-    try { localStorage.setItem(STORAGE_KEYS.defaultPage, page); } catch { /* storage full/blocked */ }
-  };
   const [displayName, setDisplayNameState] = useState(() => {
     try { return localStorage.getItem(STORAGE_KEYS.displayName) || ''; } catch { return ''; }
   });
@@ -253,12 +246,20 @@ export default function App() {
     document.documentElement.setAttribute('data-theme', skin);
   }, [skin]);
 
-  // ---- Navigation ----
+  // ---- Navigation (last-tab memory: reloads reopen where you left off) ----
   const [activeTab, setActiveTab] = useState(() => {
-    let initial = 'journal';
-    try { initial = localStorage.getItem(STORAGE_KEYS.defaultPage) || 'journal'; } catch { /* keep default */ }
-    return KNOWN_TABS.includes(initial) ? initial : 'journal';
+    try {
+      const last = localStorage.getItem(STORAGE_KEYS.lastTab);
+      if (last && KNOWN_TABS.includes(last)) return last;
+      // One-time courtesy for pre-memory installs: honor their old Default Page once.
+      const legacy = localStorage.getItem(STORAGE_KEYS.defaultPage);
+      if (legacy && KNOWN_TABS.includes(legacy)) return legacy;
+    } catch { /* fresh default below */ }
+    return 'journal';
   });
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEYS.lastTab, activeTab); } catch { /* storage full/blocked */ }
+  }, [activeTab]);
 
   // Desktop pinned sidebar: expanded panel <-> 76px icon rail. Persisted so
   // the user's choice of full sidebar vs slim rail survives reloads.
@@ -426,8 +427,6 @@ export default function App() {
               resetCurrentAccountData={resetCurrentAccountData}
               resetCurrentAccountEverything={resetCurrentAccountEverything}
               resetAllAppData={resetAllAppData}
-              defaultPage={defaultPage}
-              setDefaultPage={setDefaultPage}
               displayName={displayName}
               setDisplayName={setDisplayName}
               appName={appName}
