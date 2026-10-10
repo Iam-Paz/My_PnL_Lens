@@ -215,6 +215,15 @@ export default function Settings({
           </span>
         </div>
 
+        <div className="ts-card" style={{ marginBottom: '16px' }}>
+          <h3 style={sectionTitle}>Prop Firm Rules</h3>
+          <label style={labelStyle}>Inactivity Limit (days)</label>
+          <input type="number" step="1" min="0" max="365" className="ts-input" value={settings.inactivityLimitDays ?? 30} onChange={(e) => handleChange('inactivityLimitDays', Number(e.target.value))} />
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
+            Most firms breach idle accounts after 30 days without a trade. The Dashboard guards this limit — set to 0 to hide the guard.
+          </span>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
           <button type="submit" className="ts-btn ts-btn-primary"><Save size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Save Settings</button>
           {savedMsg && <span style={{ color: 'var(--color-win)', fontSize: '14px' }}>Saved for {accountName}!</span>}

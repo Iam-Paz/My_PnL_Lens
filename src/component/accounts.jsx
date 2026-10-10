@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Users, Plus, Pencil, Trash2, Check, X } from 'lucide-react';
+import { getInactiveDays, getLastActivityDate } from '../utils/dateUtils';
 
 // Default per-account settings — the Settings page edits a copy of this shape
 // for the active account, and new accounts start from it.
@@ -11,6 +12,7 @@ export const DEFAULT_ACCOUNT_SETTINGS = {
   riskPerTrade: 1,
   maxDailyDrawdownPercent: 3,
   maxDrawdownPercent: 10,
+  inactivityLimitDays: 30,
 };
 
 export function createAccount(name) {
@@ -162,6 +164,20 @@ export default function AccountsPage({ accounts, setAccounts, activeAccountId, s
                         Net {pnl >= 0 ? `+$${pnl.toFixed(2)}` : `-$${Math.abs(pnl).toFixed(2)}`}
                       </span>
                       <span className="pill pill-gray">{a.settings?.currency || 'USD'}</span>
+                      {(() => {
+                        const lim = Number(a.settings?.inactivityLimitDays ?? 30);
+                        const idle = getInactiveDays(a.trades || []);
+                        if (idle === null) return <span className="pill pill-gray">No trades yet</span>;
+                        const last = getLastActivityDate(a.trades || []);
+                        const lastLbl = last ? last.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+                        if (!(lim > 0)) return <span className="pill pill-gray" title={lastLbl ? `Last activity ${lastLbl}` : undefined}>Last: {lastLbl || '—'}</span>;
+                        const left = lim - idle;
+                        const breached = left <= 0;
+                        const urgent = !breached && left <= 3;
+                        const cls = breached || urgent ? 'pill-red' : idle <= Math.ceil(lim / 4) ? 'pill-green' : 'pill-gray';
+                        const label = breached ? `AT RISK · ${idle}/${lim}d` : urgent ? `Inactive ${idle}/${lim}d · ${left} left` : `Inactive ${idle}/${lim}d`;
+                        return <span className={`pill number-font ${cls}`} title={`Last activity ${lastLbl} · any trade resets the count`}>{label}</span>;
+                      })()}
                     </div>
                   </>
                 )}

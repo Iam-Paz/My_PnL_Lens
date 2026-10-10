@@ -4,7 +4,7 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import { LayoutDashboard, Share2, TriangleAlert, Flame, Snowflake } from 'lucide-react';
-import { formatDateShort, filterTradesByPeriod, getTradeResultDate } from '../utils/dateUtils';
+import { formatDateShort, filterTradesByPeriod, getTradeResultDate, getInactiveDays, getLastActivityDate } from '../utils/dateUtils';
 import { sortTradesChronological } from '../utils/tradeStats';
 import { useSkin, chartPalette } from '../utils/themeConfig.js';
 import ShareCard from './ShareCard.jsx';
@@ -126,6 +126,22 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   const dailyDdBreached = showDailyDd && dailyDdLimit > 0 && dailyDdUsed >= dailyDdLimit;
   const dailyDdHint = todayTradeCount === 0 ? 'No trades today yet' : `Today's P&L: ${fmt(todayPnL, sym, true)}`;
 
+  // --- Prop-firm inactivity guard (0 in settings = card hidden) ---
+  const inactivityLimit = Number(cfg.inactivityLimitDays ?? 30);
+  const showInactivity = inactivityLimit > 0;
+  const inactiveDays = getInactiveDays(trades) ?? 0;
+  const inactivityUsage = inactivityLimit > 0 ? Math.min(100, (inactiveDays / inactivityLimit) * 100) : 0;
+  const inactivityLeft = inactivityLimit - inactiveDays;
+  const inactivityBreached = showInactivity && inactiveDays >= inactivityLimit;
+  const lastActivity = getLastActivityDate(trades);
+  const lastActivityLbl = lastActivity ? lastActivity.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
+  const hasAnyTrades = (trades || []).length > 0;
+  const inactivityHint = !hasAnyTrades
+    ? 'No trades yet — the clock starts on your first trade'
+    : inactivityBreached
+      ? `Last activity ${lastActivityLbl} · limit passed ${inactiveDays - inactivityLimit}d ago — trade to reset`
+      : `Last activity ${lastActivityLbl} · ${inactivityLeft}d left — any trade resets the count`;
+
   const weeklyData = useMemo(() => buildWeeklySummary(scopedTrades), [scopedTrades]);
 
   return (
@@ -181,13 +197,19 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
         <Stat label="Profit Factor" value={stats.profitFactor} color="var(--color-purple)" hint="> 1.5 is strong" />
       </div>
 
-      {(showDailyDd || showMaxDd) && (
+      {(showDailyDd || showMaxDd || showInactivity) && (
         <>
           <SectionTitle>Risk Management Monitor</SectionTitle>
           {dailyDdBreached && (
             <div style={{ backgroundColor: 'rgba(255,82,82,0.12)', border: '1px solid var(--color-loss)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: 'var(--color-loss)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <TriangleAlert size={16} style={{ flexShrink: 0 }} />
               <span>DAILY LIMIT HIT — you're down {sym}{dailyDdUsed.toFixed(2)} of your {sym}{dailyDdLimit.toFixed(2)} daily limit. Step away and protect the account.</span>
+            </div>
+          )}
+          {inactivityBreached && (
+            <div style={{ backgroundColor: 'rgba(255,82,82,0.12)', border: '1px solid var(--color-loss)', borderRadius: '8px', padding: '12px 16px', marginBottom: '16px', color: 'var(--color-loss)', fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TriangleAlert size={16} style={{ flexShrink: 0 }} />
+              <span>INACTIVITY LIMIT REACHED — no trades for {inactiveDays} days (limit {inactivityLimit}). Place any trade to reset the count and protect the account.</span>
             </div>
           )}
           <div className="risk-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '28px' }}>
@@ -209,6 +231,17 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
                 usagePct={drawdownUsage}
                 sym={sym}
                 hint={`Peak drawdown recorded: ${sym}${maxDrawdown.toFixed(2)}`}
+              />
+            )}
+            {showInactivity && (
+              <RiskCard
+                title={`Inactivity Guard (${inactivityLimit}d limit)`}
+                used={inactiveDays}
+                limit={inactivityLimit}
+                usagePct={inactivityUsage}
+                sym={sym}
+                unit="days"
+                hint={inactivityHint}
               />
             )}
           </div>
@@ -263,6 +296,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '14px', marginBottom: '28px' }}>
         <Stat label="Winning Days Rate" value={`${stats.winningDaysRate}%`} color="var(--color-sky)" />
         <Stat label="Best Trade" value={fmt(stats.bestTrade, sym, true)} color="var(--color-win)" />
+        <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-win)" />
         <Stat label="Worst Trade" value={fmt(stats.worstTrade, sym, true)} color="var(--color-loss)" />
         <Stat label="Trading Days Logged" value={stats.tradingDays} />
         <Stat label="Total Trades" value={stats.totalTrades} />
@@ -497,7 +531,7 @@ function Stat({ label, value, color, hint, wash }) {
   );
 }
 
-function RiskCard({ title, used, limit, usagePct, sym, hint }) {
+function RiskCard({ title, used, limit, usagePct, sym, hint, unit }) {
   const critical = usagePct >= 80;
   const warning = usagePct >= 50 && usagePct < 80;
   const barColor = critical ? 'var(--color-loss)' : warning ? 'var(--color-amber-text)' : 'var(--color-win)';
@@ -506,7 +540,7 @@ function RiskCard({ title, used, limit, usagePct, sym, hint }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
         <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{title}</span>
         <span className="number-font" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-          {sym}{used.toFixed(2)} / {sym}{limit.toFixed(2)}
+          {unit ? `${used} / ${limit} ${unit}` : `${sym}${used.toFixed(2)} / ${sym}${limit.toFixed(2)}`}
         </span>
       </div>
       <div style={{ height: '10px', backgroundColor: 'var(--bg-main)', borderRadius: '5px', overflow: 'hidden', marginBottom: '8px' }}>

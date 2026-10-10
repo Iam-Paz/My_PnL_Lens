@@ -126,3 +126,32 @@ export function sortTradesByDate(trades = [], newestFirst = true) {
     return newestFirst ? dateB - dateA : dateA - dateB;
   });
 }
+
+/**
+ * Prop-firm inactivity guard: the last day with ANY trade activity (an open
+ * OR a close counts — firms reset the clock on any executed trade), plus the
+ * consecutive inactive calendar days from then through today.
+ * Returns null when there are no dated trades (brand-new account: show it
+ * as new, never flag it as inactive).
+ */
+export function getLastActivityDate(trades = []) {
+  let latest = null;
+  for (const t of trades || []) {
+    if (!t) continue;
+    const raws = [t.openAt, t.openTime, t.closeAt, t.closeTime, t.date];
+    for (const raw of raws) {
+      const d = toDate(raw);
+      if (d && (!latest || d > latest)) latest = d;
+    }
+  }
+  return latest;
+}
+
+export function getInactiveDays(trades = [], now = new Date()) {
+  const last = getLastActivityDate(trades);
+  if (!last) return null;
+  const a = new Date(last); a.setHours(0, 0, 0, 0);
+  const b = new Date(now); b.setHours(0, 0, 0, 0);
+  const diff = Math.round((b - a) / 86400000);
+  return Math.max(0, diff);
+}
