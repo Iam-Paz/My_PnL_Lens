@@ -56,7 +56,14 @@ function parseNumber(val) {
   if (s.includes(',') && s.includes('.')) {
     if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
     else s = s.replace(/,/g, '');
-  } else s = s.replace(',', '.');
+  } else if (s.includes(',')) {
+    // Lone comma(s): decimal mark ONLY when exactly one comma is followed by
+    // 1-2 digits ("1,5" EU style); otherwise thousands ("1,234", "1,234,567").
+    const parts = s.split(',');
+    const tail = parts[parts.length - 1];
+    if (parts.length === 2 && /^\d{1,2}$/.test(tail)) s = s.replace(',', '.');
+    else s = s.replace(/,/g, '');
+  }
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : 0;
 }
@@ -94,7 +101,17 @@ function looksLikeSymbol(v) {
   return /[a-zA-Z]/.test(s);
 }
 
+// Stable id for ticketless CSV rows: the same file always yields the same id,
+// so re-imports dedupe instead of duplicating. (djb2 hash, base36.)
+function hashId(str) {
+  let h = 5381;
+  const s = String(str);
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+  return 'csv_' + h.toString(36);
+}
+
 function buildTrade({
+  rowIndex = 0,
   ticket,
   openRaw,
   closeRaw,
@@ -118,7 +135,8 @@ function buildTrade({
   const sw = parseNumber(swap);
   const gross = parseNumber(profit);
   const net = parseFloat((gross + comm + sw).toFixed(2));
-  const ticketId = String(ticket || `mt5_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`);
+  const cleanTicket = String(ticket === undefined || ticket === null ? '' : ticket).trim();
+  const ticketId = cleanTicket || hashId([symbol, openRaw, closeRaw, typeRaw, volume, profit, rowIndex].join('|'));
 
   return {
     id: 'trade-' + ticketId,
@@ -150,8 +168,9 @@ function buildTrade({
 }
 
 /** Classic MT5 deal history positional mapping */
-export function mapMT5RowToTrade(row = []) {
+export function mapMT5RowToTrade(row = [], rowIndex = 0) {
   return buildTrade({
+    rowIndex,
     openRaw: row[0],
     ticket: row[1],
     symbol: row[2],
@@ -180,7 +199,7 @@ function scoreAsMt5Header(cells = []) {
   return score;
 }
 
-function mapByHeaders(headers, row) {
+function mapByHeaders(headers, row, rowIndex = 0) {
   const hs = headers.map((h) => String(h || '').trim().toLowerCase().replace(/["']/g, ''));
 
   const timeIdx = [];
@@ -212,6 +231,7 @@ function mapByHeaders(headers, row) {
   const get = (i) => (i >= 0 && i < row.length ? row[i] : '');
 
   return buildTrade({
+    rowIndex,
     openRaw: get(timeIdx[0]),
     closeRaw: get(timeIdx[1]),
     ticket: get(ticketIdx),
@@ -251,13 +271,13 @@ export function parseCSVToTrades(csvText) {
       if (!row || row.length < 5) continue;
       if (scoreAsMt5Header(row) >= 5) continue;
 
-      const t = mapByHeaders(headers, row);
+      const t = mapByHeaders(headers, row, i);
       const bad =
         (!t.symbol || t.symbol === 'UNKNOWN') &&
         !parseMT5Date(t.openAt || t.openTime) &&
         !(Number(t.pnl) || Number(t.profit));
 
-      const finalTrade = bad && row.length >= 10 ? mapMT5RowToTrade(row) : t;
+      const finalTrade = bad && row.length >= 10 ? mapMT5RowToTrade(row, i) : t;
 
       const hasSignal =
         (finalTrade.symbol && finalTrade.symbol !== 'UNKNOWN') ||
@@ -270,7 +290,8 @@ export function parseCSVToTrades(csvText) {
   }
 
   if (!trades.length) {
-    for (const row of rows) {
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       if (!row || row.length < 10) continue;
       if (scoreAsMt5Header(row) >= 5) continue;
 
@@ -283,7 +304,7 @@ export function parseCSVToTrades(csvText) {
 
       if (!(timeOk && (ticketOk || symbolOk))) continue;
 
-      trades.push(mapMT5RowToTrade(row));
+      trades.push(mapMT5RowToTrade(row, i));
     }
   }
 

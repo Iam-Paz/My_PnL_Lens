@@ -31,7 +31,7 @@ function cleanNumber(val){
   if(s.startsWith('(')&&s.endsWith(')')) s='-'+s.slice(1,-1);
   s=s.replace(/[\u2012\u2013\u2014\u2015\u2212]/g,'-');
   if(s.includes(',')&&s.includes('.')){ if(s.lastIndexOf(',')>s.lastIndexOf('.')) s=s.replace(/\./g,'').replace(',','.'); else s=s.replace(/,/g,''); }
-  else if(s.includes(',')&&!s.includes('.')) s=s.replace(',', '.');
+  else if(s.includes(',')){ const cparts=s.split(','); const ctail=cparts[cparts.length-1]; if(cparts.length===2&&/^\d{1,2}$/.test(ctail)) s=s.replace(',', '.'); else s=s.replace(/,/g,''); }
   const match=s.match(/-?\d+(\.\d+)?/);
   return match?parseFloat(match[0])||0:0;
 }

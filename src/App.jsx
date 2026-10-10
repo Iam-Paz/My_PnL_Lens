@@ -54,11 +54,26 @@ const TAB_TITLES = {
 // Currency code -> symbol (passed down to Playbooks; Dashboard/journal map their own).
 const CUR = { USD: '$', EUR: '€', GBP: '£', NGN: '₦' };
 
+// Keys whose stored JSON failed to parse on this load. Populated by readJSON()
+// during first render's state initializers; the rescue banner below reads it.
+const corruptStorageKeys = [];
+
 function readJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
     if (raw === null || raw === undefined) return fallback;
-    return JSON.parse(raw);
+    try {
+      return JSON.parse(raw);
+    } catch {
+      // Corrupt but potentially recoverable: preserve the raw blob BEFORE any
+      // persist effect overwrites it, then fall back so the app still loads.
+      try {
+        localStorage.setItem(key + '__corrupt_backup', raw);
+      } catch { /* storage full/blocked — nothing more we can do */ }
+      if (!corruptStorageKeys.includes(key)) corruptStorageKeys.push(key);
+      console.warn('[PnL Lens] Stored data for "' + key + '" failed to parse. Raw value preserved under "' + key + '__corrupt_backup".');
+      return fallback;
+    }
   } catch {
     return fallback;
   }
@@ -273,6 +288,9 @@ export default function App() {
   // Mobile "More" bottom sheet visibility. Closed by selecting an entry,
   // tapping the backdrop, pressing Escape, or tapping the More tab again.
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
+  // Dismiss flag for the corrupt-storage rescue banner (Fix 1). Default true
+  // (visible) — the banner itself only renders when corruptStorageKeys is non-empty.
+  const [showStorageWarning, setShowStorageWarning] = useState(true);
   useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') setMoreSheetOpen(false); };
     window.addEventListener('keydown', handleKey);
@@ -412,7 +430,20 @@ export default function App() {
           </select>
         </header>
 
-        <main className="ts-main" style={{ flex: 1, minWidth: 0, padding: '32px 40px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+        <main key={activeAccountId} className="ts-main" style={{ flex: 1, minWidth: 0, padding: '32px 40px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+          {/* Rescue banner (Fix 1): only renders when stored data failed to parse on load. */}
+          {showStorageWarning && corruptStorageKeys.length > 0 && (
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', backgroundColor: 'rgba(245,158,11,0.12)', border: '1px solid #f59e0b', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px' }}>
+              <span style={{ fontSize: '18px', lineHeight: 1.2 }}>⚠️</span>
+              <div style={{ flex: 1, fontSize: '13px' }}>
+                <strong>Some saved data couldn’t be read, so a fresh copy was started.</strong>
+                <div style={{ marginTop: '4px', color: 'var(--text-secondary)' }}>
+                  The unreadable data was preserved in this browser (keys: {corruptStorageKeys.join(', ')}). Restore from Settings → Import Backup if you have one.
+                </div>
+              </div>
+              <button onClick={() => setShowStorageWarning(false)} className="ts-btn ts-btn-ghost" style={{ flexShrink: 0 }}>Dismiss</button>
+            </div>
+          )}
           {activeTab === 'dashboard' && <Dashboard trades={trades} settings={settings} brandName={appName} />}
           {activeTab === 'journal' && <Journal trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} logActivity={logActivity} settings={settings} />}
           {activeTab === 'analytics' && <Analytics trades={trades} playbooks={playbooks} settings={settings} />}
