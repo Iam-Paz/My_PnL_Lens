@@ -108,8 +108,23 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
     return rows;
   }, [scopedTrades, cfg.startingBalance]);
 
-  const currentDrawdown = equityData.length ? equityData[equityData.length - 1].drawdown : 0;
-  const maxDrawdown = equityData.reduce((m, r) => Math.max(m, r.drawdown), 0);
+  // Lifetime curve (ALL trades): the Max-Drawdown risk card is account-scoped,
+  // never period-scoped — switching the filter must not hide real drawdown.
+  const lifetimeDrawdowns = useMemo(() => {
+    const sorted = sortTradesChronological(trades);
+    let equity = Number(cfg.startingBalance) || 10000;
+    let peak = equity;
+    const rows = [];
+    for (const t of sorted) {
+      equity += getTradePnL(t);
+      if (equity > peak) peak = equity;
+      rows.push(Number((peak - equity).toFixed(2)));
+    }
+    return rows;
+  }, [trades, cfg.startingBalance]);
+
+  const currentDrawdown = lifetimeDrawdowns.length ? lifetimeDrawdowns[lifetimeDrawdowns.length - 1] : 0;
+  const maxDrawdown = lifetimeDrawdowns.reduce((m, r) => Math.max(m, r), 0);
   const maxDrawdownLimit = (Number(cfg.startingBalance) || 10000) * ((Number(cfg.maxDrawdownPercent) || 10) / 100);
   const drawdownUsage = maxDrawdownLimit > 0 ? Math.min(100, (currentDrawdown / maxDrawdownLimit) * 100) : 0;
 
@@ -230,7 +245,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
                 limit={maxDrawdownLimit}
                 usagePct={drawdownUsage}
                 sym={sym}
-                hint={`Peak drawdown recorded: ${sym}${maxDrawdown.toFixed(2)}`}
+                hint={`Peak drawdown recorded (all time): ${sym}${maxDrawdown.toFixed(2)}`}
               />
             )}
             {showInactivity && (
