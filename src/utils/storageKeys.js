@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   activityLog: 'mypnllens_activity_log',
   defaultPage: 'mypnllens_default_page',
   lastTab: 'mypnllens_last_tab',
+  dashboardPeriod: 'mypnllens_dashboard_period',
+  analyticsPeriod: 'mypnllens_analytics_period',
   displayName: 'mypnllens_display_name',
   sidebarCollapsed: 'mypnllens_sidebar_collapsed',
   myTickets: 'mypnllens_my_tickets',

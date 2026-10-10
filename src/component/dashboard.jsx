@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
@@ -8,6 +8,8 @@ import { formatDateShort, filterTradesByPeriod, getTradeResultDate } from '../ut
 import { sortTradesChronological } from '../utils/tradeStats';
 import { useSkin, chartPalette } from '../utils/themeConfig.js';
 import ShareCard from './ShareCard.jsx';
+import DayTradesModal from './DayTradesModal.jsx';
+import { STORAGE_KEYS } from '../utils/storageKeys.js';
 
 const PERIODS = [
   { id: 'today', label: 'Today' },
@@ -37,8 +39,18 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   // Chart palette for the active skin (recharts needs real colors, not var()).
   const cc = chartPalette(useSkin());
 
-  const [period, setPeriod] = useState('30d');
+  const [period, setPeriod] = useState(() => {
+    try {
+      const v = localStorage.getItem(STORAGE_KEYS.dashboardPeriod);
+      if (v && PERIODS.some((p) => p.id === v)) return v;
+    } catch { /* fresh default */ }
+    return '30d';
+  });
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEYS.dashboardPeriod, period); } catch { /* storage full/blocked */ }
+  }, [period]);
   const [shareOpen, setShareOpen] = useState(false);
+  const [daySel, setDaySel] = useState(null); // { dateKey, trades } for the day-detail modal
   const [calMonth, setCalMonth] = useState(() => {
     const t = new Date();
     return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}`;
@@ -60,6 +72,18 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
       m[key].count += 1;
       if (p > 0) m[key].wins += 1;
       else if (p < 0) m[key].losses += 1;
+    }
+    return m;
+  }, [trades]);
+
+  // Day -> trades index using the SAME bucketing as dailyMap above (keep in sync).
+  const dayTrades = useMemo(() => {
+    const m = {};
+    for (const t of trades) {
+      const d = getTradeResultDate(t);
+      if (!d) continue;
+      const key = formatDateShort(d);
+      (m[key] = m[key] || []).push(t);
     }
     return m;
   }, [trades]);
@@ -232,7 +256,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
         Trading Activity Calendar
       </SectionTitle>
       <div className="ts-card" style={{ marginBottom: '28px' }}>
-        <CalendarGrid monthStr={calMonth} dailyMap={dailyMap} sym={sym} />
+        <CalendarGrid monthStr={calMonth} dailyMap={dailyMap} sym={sym} dayTrades={dayTrades} onDayClick={(dateKey, list) => setDaySel({ dateKey, trades: list })} />
       </div>
 
       <SectionTitle>Performance Analytics</SectionTitle>
@@ -310,6 +334,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
       </div>
 
       {shareOpen && <ShareCard trades={trades} settings={cfg} brandName={brandName} onClose={() => setShareOpen(false)} />}
+      {daySel && <DayTradesModal dateKey={daySel.dateKey} trades={daySel.trades} sym={sym} onClose={() => setDaySel(null)} />}
     </div>
   );
 }
@@ -395,7 +420,7 @@ function buildWeeklySummary(trades) {
     });
 }
 
-function CalendarGrid({ monthStr, dailyMap, sym }) {
+function CalendarGrid({ monthStr, dailyMap, sym, dayTrades, onDayClick }) {
   let [y, m] = (monthStr || '').split('-').map(Number);
   if (!y || !m) { const t = new Date(); y = t.getFullYear(); m = t.getMonth() + 1; }
   const year = y, month = m - 1;
@@ -406,7 +431,7 @@ function CalendarGrid({ monthStr, dailyMap, sym }) {
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    cells.push({ day: d, data: dailyMap[key] || null });
+    cells.push({ day: d, key, data: dailyMap[key] || null, list: (dayTrades && dayTrades[key]) || [] });
   }
 
   return (
@@ -424,10 +449,12 @@ function CalendarGrid({ monthStr, dailyMap, sym }) {
             else if (data.pnl < 0) { bg = 'rgba(255,82,82,0.12)'; border = 'rgba(255,82,82,0.4)'; textColor = 'var(--color-loss)'; }
             else { bg = 'rgba(148,163,184,0.08)'; border = 'var(--border-color)'; textColor = 'var(--text-secondary)'; }
           }
+          const clickable = !!data;
           return (
-            <div key={'d' + i} className="calendar-day" style={{
+            <div key={'d' + i} className="calendar-day" title={clickable ? 'View day detail' : undefined} onClick={clickable ? () => onDayClick?.(c.key, c.list) : undefined} style={{
               minHeight: '68px', backgroundColor: bg, border: `1px solid ${border}`,
-              borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between'
+              borderRadius: '6px', padding: '6px 8px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+              ...(clickable ? { cursor: 'pointer' } : {})
             }}>
               <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 600 }}>{c.day}</span>
               {data && (

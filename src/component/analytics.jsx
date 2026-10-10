@@ -11,8 +11,11 @@ import {
   getCalendarMonthData,
   calculateSessionStats,
   calculateRMultipleStats,
+  parseTimestamp,
 } from '../utils/tradeStats';
 import { filterTradesByPeriod, getTradeResultDate, formatDateShort } from '../utils/dateUtils';
+import { STORAGE_KEYS } from '../utils/storageKeys.js';
+import DayTradesModal from './DayTradesModal.jsx';
 import { useSkin, chartPalette } from '../utils/themeConfig.js';
 import EmotionAnalysis from './EmotionAnalysis';
 import RuleAdherence from './RuleAdherence';
@@ -43,7 +46,16 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
   // Chart palette for the active skin (recharts needs real colors, not var()).
   const cc = chartPalette(useSkin());
 
-  const [period, setPeriod] = useState('all');
+  const [period, setPeriod] = useState(() => {
+    try {
+      const v = localStorage.getItem(STORAGE_KEYS.analyticsPeriod);
+      if (v && PERIODS.some((p) => p.id === v)) return v;
+    } catch { /* fresh default */ }
+    return '30d';
+  });
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEYS.analyticsPeriod, period); } catch { /* storage full/blocked */ }
+  }, [period]);
   const [symbolSort, setSymbolSort] = useState('netPnL');
 
   const latestYM = useMemo(() => getLatestTradeYearMonth(trades), [trades]);
@@ -79,6 +91,21 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
     () => getCalendarMonthData(trades, calYear, calMonth),
     [trades, calYear, calMonth]
   );
+
+  // Day -> trades index using the SAME bucketing as getCalendarMonthData (keep in sync).
+  const calDayTrades = useMemo(() => {
+    const m = {};
+    for (const t of trades || []) {
+      const ms = parseTimestamp(t.closeTime || t.openTime || t.closeAt || t.openAt);
+      if (!ms) continue;
+      const d = new Date(ms);
+      const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      (m[k] = m[k] || []).push(t);
+    }
+    return m;
+  }, [trades]);
+
+  const [daySel, setDaySel] = useState(null); // { dateKey, trades } for the day-detail modal
 
   const cumData = useMemo(() => buildCumulative(scoped), [scoped]);
   const dailyData = useMemo(() => buildDaily(scoped), [scoped]);
@@ -376,8 +403,9 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
             return (
               <div
                 key={cell.dateKey}
-                title={cell.hasTrades ? `${cell.dateKey} · ${fmt(cell.pnl, sym, true)} · ${cell.count} trades` : cell.dateKey}
-                style={{ minHeight: '72px', borderRadius: '8px', border, background: bg, padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}
+                title={cell.hasTrades ? `${cell.dateKey} · ${fmt(cell.pnl, sym, true)} · ${cell.count} trades — click for detail` : cell.dateKey}
+                onClick={cell.hasTrades ? () => setDaySel({ dateKey: cell.dateKey, trades: calDayTrades[cell.dateKey] || [] }) : undefined}
+                style={{ minHeight: '72px', borderRadius: '8px', border, background: bg, padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', ...(cell.hasTrades ? { cursor: 'pointer' } : {}) }}
               >
                 <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)' }}>{cell.dayNumber}</div>
                 {cell.hasTrades ? (
@@ -618,6 +646,8 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
           </table>
         </div>
       </div>
+
+      {daySel && <DayTradesModal dateKey={daySel.dateKey} trades={daySel.trades} sym={sym} onClose={() => setDaySel(null)} />}
     </div>
   );
 }
