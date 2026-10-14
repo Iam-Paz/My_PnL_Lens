@@ -6,6 +6,7 @@ import {
   calculateStreaks,
   parseTimestamp,
 } from '../utils/tradeStats';
+import { isTradeOpen } from '../utils/dateUtils';
 
 const COMPARISON_PRESETS = [
   { id: '30d_vs_prior30d', label: 'Last 30 Days vs Prior 30 Days' },
@@ -21,6 +22,7 @@ function getTradeDate(t) {
 
 function filterTradesBetween(trades, start, end) {
   return trades.filter((t) => {
+    if (isTradeOpen(t)) return false;
     const d = getTradeDate(t);
     return d && d >= start && d <= end;
   });
@@ -120,7 +122,7 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
   const ddB = useMemo(() => calculateDrawdown(tradesB, startingBalance), [tradesB, startingBalance]);
 
   const streaksA = useMemo(() => calculateStreaks(tradesA), [tradesA]);
-  const streaksB = useMemo(() => calculateStreaks(tradesB), [tradesB]);
+  const streaksB = useMemo(() => calculateStreaks(tradesB), [streaksB]);
 
   // Helper function to calculate deltas
   const delta = (valA, valB) => {

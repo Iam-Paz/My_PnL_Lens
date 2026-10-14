@@ -13,7 +13,7 @@ import {
   calculateRMultipleStats,
   parseTimestamp,
 } from '../utils/tradeStats';
-import { filterTradesByPeriod, getTradeResultDate, formatDateShort } from '../utils/dateUtils';
+import { filterTradesByPeriod, getTradeResultDate, formatDateShort, isTradeOpen } from '../utils/dateUtils';
 import { STORAGE_KEYS } from '../utils/storageKeys.js';
 import DayTradesModal from './DayTradesModal.jsx';
 import { useSkin, chartPalette } from '../utils/themeConfig.js';
@@ -58,7 +58,12 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
   }, [period]);
   const [symbolSort, setSymbolSort] = useState('netPnL');
 
-  const latestYM = useMemo(() => getLatestTradeYearMonth(trades), [trades]);
+  // Open trades have no realized result yet, so the whole page analyses
+  // closed trades only; the open count stays visible in the header.
+  const closed = useMemo(() => (trades || []).filter((t) => !isTradeOpen(t)), [trades]);
+  const openCount = (trades || []).length - closed.length;
+
+  const latestYM = useMemo(() => getLatestTradeYearMonth(closed), [closed]);
   const [calYear, setCalYear] = useState(latestYM.year);
   const [calMonth, setCalMonth] = useState(latestYM.month);
 
@@ -88,14 +93,14 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
   }));
 
   const calendar = useMemo(
-    () => getCalendarMonthData(trades, calYear, calMonth),
-    [trades, calYear, calMonth]
+    () => getCalendarMonthData(closed, calYear, calMonth),
+    [closed, calYear, calMonth]
   );
 
   // Day -> trades index using the SAME bucketing as getCalendarMonthData (keep in sync).
   const calDayTrades = useMemo(() => {
     const m = {};
-    for (const t of trades || []) {
+    for (const t of closed) {
       const ms = parseTimestamp(t.closeTime || t.openTime || t.closeAt || t.openAt);
       if (!ms) continue;
       const d = new Date(ms);
@@ -103,7 +108,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
       (m[k] = m[k] || []).push(t);
     }
     return m;
-  }, [trades]);
+  }, [closed]);
 
   const [daySel, setDaySel] = useState(null); // { dateKey, trades } for the day-detail modal
 
@@ -128,7 +133,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
   const buySell = useMemo(() => buildBuySell(scoped), [scoped]);
   const dowRows = useMemo(() => buildDow(scoped), [scoped]);
   const dowChartData = dowRows.map((r) => ({ name: r.day, pnl: r.pnl, count: r.count }));
-  const monthlyRows = useMemo(() => buildMonthly(trades), [trades]);
+  const monthlyRows = useMemo(() => buildMonthly(closed), [closed]);
 
   const directionBarData = [
     { name: 'BUYS', pnl: Number(buySell.buys.netPnL.toFixed(2)), count: buySell.buys.count },
@@ -159,7 +164,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
       <div className="header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><TrendingUp size={22} /> Performance Analytics</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>{scoped.length} trades in scope</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>{scoped.length} trades in scope{openCount > 0 ? ` · ${openCount} open` : ''}</p>
         </div>
         <div className="period-filters" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
           {PERIODS.map((p) => (

@@ -4,7 +4,7 @@ import {
   BarChart, Bar, Cell,
 } from 'recharts';
 import { LayoutDashboard, Share2, TriangleAlert, Flame, Snowflake } from 'lucide-react';
-import { formatDateShort, filterTradesByPeriod, getTradeResultDate, getInactiveDays, getLastActivityDate } from '../utils/dateUtils';
+import { formatDateShort, filterTradesByPeriod, getTradeResultDate, getInactiveDays, getLastActivityDate, isTradeOpen } from '../utils/dateUtils';
 import { sortTradesChronological } from '../utils/tradeStats';
 import { useSkin, chartPalette } from '../utils/themeConfig.js';
 import ShareCard from './ShareCard.jsx';
@@ -81,6 +81,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   const dailyMap = useMemo(() => {
     const m = {};
     for (const t of trades) {
+      if (isTradeOpen(t)) continue;
       const d = getTradeResultDate(t);
       if (!d) continue;
       const key = formatDateShort(d);
@@ -98,6 +99,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   const dayTrades = useMemo(() => {
     const m = {};
     for (const t of trades) {
+      if (isTradeOpen(t)) continue;
       const d = getTradeResultDate(t);
       if (!d) continue;
       const key = formatDateShort(d);
@@ -129,7 +131,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   // Lifetime curve (ALL trades): the Max-Drawdown risk card is account-scoped,
   // never period-scoped — switching the filter must not hide real drawdown.
   const lifetimeDrawdowns = useMemo(() => {
-    const sorted = sortTradesChronological(trades);
+    const sorted = sortTradesChronological(trades.filter((t) => !isTradeOpen(t)));
     let equity = Number(cfg.startingBalance) || 10000;
     let peak = equity;
     const rows = [];
@@ -176,6 +178,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
       : `Last activity ${lastActivityLbl} · ${inactivityLeft}d left — any trade resets the count`;
 
   const weeklyData = useMemo(() => buildWeeklySummary(scopedTrades), [scopedTrades]);
+  const openCount = trades.filter((t) => isTradeOpen(t)).length;
 
   return (
     <div>
@@ -183,7 +186,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
         <div>
           <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><LayoutDashboard size={22} /> Command Dashboard</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
-            Showing <strong style={{ color: 'var(--text-primary)' }}>{PERIODS.find((p) => p.id === period)?.label}</strong> · {scopedTrades.length} trades in scope
+            Showing <strong style={{ color: 'var(--text-primary)' }}>{PERIODS.find((p) => p.id === period)?.label}</strong> · {scopedTrades.length} trades in scope · {openCount} open
           </p>
         </div>
         <div className="period-filters" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>

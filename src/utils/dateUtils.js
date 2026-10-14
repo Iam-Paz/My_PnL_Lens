@@ -92,14 +92,29 @@ const PERIOD_ALIASES = {
 };
 
 /**
+ * Open vs Closed, derived — no stored flag, nothing to migrate.
+ * Open = no close time AND no exit price. Imports carry close times and old
+ * manual logs carry exit prices, so all history classifies as Closed; only
+ * freshly-logged "still open" trades (and close-less CSV rows) are Open.
+ */
+export function isTradeOpen(t) {
+  if (!t) return false;
+  const ct = t.closeAt || t.closeTime;
+  return !ct && !Number(t.exitPrice);
+}
+
+/**
  * The ONE period filter for the whole app (Dashboard, Analytics, Share Card).
  * Calendar-day boundaries on the result date — same rules on every page.
+ * Realized-only: open trades are excluded here, centrally.
  */
 export function filterTradesByPeriod(trades = [], period = 'all', customRange = null) {
   if (!Array.isArray(trades)) return [];
+  // Realized-only: open trades live in the Journal; every scoped stat is closed-only.
+  const closed = trades.filter((t) => !isTradeOpen(t));
   const raw = String(period).toLowerCase();
   const key = PERIOD_ALIASES[raw] || raw;
-  if (key === 'all') return trades;
+  if (key === 'all') return closed;
 
   const now = new Date();
   now.setHours(23, 59, 59, 999);
@@ -119,9 +134,9 @@ export function filterTradesByPeriod(trades = [], period = 'all', customRange = 
     start = new Date(cs.getFullYear(), cs.getMonth(), cs.getDate());
     end = new Date(ce.getFullYear(), ce.getMonth(), ce.getDate(), 23, 59, 59, 999);
   }
-  else return trades; // unknown period id → don't filter rather than hide everything
+  else return closed; // unknown period id → don't filter rather than hide everything
 
-  return trades.filter((t) => {
+  return closed.filter((t) => {
     const d = getTradeResultDate(t);
     return d && d >= start && d <= end;
   });

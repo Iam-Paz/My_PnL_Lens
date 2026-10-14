@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote } from 'lucide-react';
-import { toDate } from '../utils/dateUtils';
+import { toDate, isTradeOpen } from '../utils/dateUtils';
 import { parseCSVToTrades } from '../utils/csvParser';
 import { formatToLocalTime } from '../utils/tradeStats';
 
@@ -49,8 +49,9 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const [filterSetup,setFilterSetup]=useState('all');
   const [sortOrder,setSortOrder]=useState('newest');
   const [filterReview,setFilterReview]=useState('all');
+  const [filterStatus,setFilterStatus]=useState('all');
   const setupOptions=['Untagged',...playbooks.map(p=>p.title)];
-  const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal() });
+  const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
   const fileInputRef=useRef(null); const screenshotRef=useRef(null);
   useEffect(()=>{ if(!isModalOpen&&!isDetailOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen]);
   function displayLocal(val){ return formatToLocalTime(val, brokerUtcOffset); }
@@ -86,9 +87,9 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   };
   const handleFormSubmit=(e)=>{
     e.preventDefault(); const id=String(Date.now()); const open=formData.openTime; const dir=normalizeType(formData.type);
-    const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:'', symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), exitType:formData.exitType||'', commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), riskAmount:cleanNumber(formData.riskAmount), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null, reviewed:false };
+    const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:formData.isOpen?'':(formData.closeDate||''), symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), exitType:formData.exitType||'', commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), riskAmount:cleanNumber(formData.riskAmount), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null, reviewed:false };
     setTrades([newTrade,...trades]); setIsModalOpen(false);
-    setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal() });
+    setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
   };
   // Retagging clears rule ticks — they belong to the previous playbook's rule set.
   const handleTagChange=(id,newSetup)=>setTrades(trades.map(t=>t.id===id?{...t,setup:newSetup,rulesChecked:[]}:t));
@@ -109,7 +110,9 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
     const matchesSetup=filterSetup==='all'||(t.setup||'Untagged')===filterSetup;
     const unrev=t.reviewed===false;
     const matchesReview=filterReview==='all'||(filterReview==='unreviewed'&&unrev)||(filterReview==='reviewed'&&!unrev);
-    return matchesSearch&&matchesType&&matchesSetup&&matchesReview;
+    const tradeOpen=isTradeOpen(t);
+    const matchesStatus=filterStatus==='all'||(filterStatus==='open'&&tradeOpen)||(filterStatus==='closed'&&!tradeOpen);
+    return matchesSearch&&matchesType&&matchesSetup&&matchesReview&&matchesStatus;
   }).sort((a,b)=>{
     if(sortOrder==='pnlHigh') return getTradePnL(b)-getTradePnL(a);
     if(sortOrder==='pnlLow') return getTradePnL(a)-getTradePnL(b);
@@ -156,21 +159,25 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
         <select className="ts-input" value={filterReview} onChange={e=>setFilterReview(e.target.value)} style={{width:'150px'}}>
           <option value="all">All Reviews</option><option value="unreviewed">Needs Review</option><option value="reviewed">Reviewed</option>
         </select>
+        <select className="ts-input" value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={{width:'130px'}}>
+          <option value="all">All Statuses</option><option value="open">Open</option><option value="closed">Closed</option>
+        </select>
       </div>
 
       <div className="ts-card" style={{padding:0,overflow:'hidden'}}>
         <div style={{overflowX:'auto'}}>
           <table className="ts-table">
-            <thead><tr><th>Ticket</th><th>Open (Local)</th><th>Close (Local)</th><th>Symbol</th><th className="center">Dir</th><th className="num">Vol</th><th className="num">Entry</th><th className="num">SL</th><th className="num">TP</th><th className="num">Exit</th><th className="num">Comm</th><th className="num">Swap</th><th className="num">Net P&L</th><th>Setup</th><th className="center">Action</th></tr></thead>
+            <thead><tr><th>Ticket</th><th>Status</th><th>Open (Local)</th><th>Close (Local)</th><th>Symbol</th><th className="center">Dir</th><th className="num">Vol</th><th className="num">Entry</th><th className="num">SL</th><th className="num">TP</th><th className="num">Exit</th><th className="num">Comm</th><th className="num">Swap</th><th className="num">Net P&L</th><th>Setup</th><th className="center">Action</th></tr></thead>
             <tbody>
               {filteredTrades.length===0?(
-                <tr><td colSpan="15" style={{padding:'40px',textAlign:'center',color:'var(--text-secondary)'}}>No trades match filters.</td></tr>
+                <tr><td colSpan="16" style={{padding:'40px',textAlign:'center',color:'var(--text-secondary)'}}>No trades match filters.</td></tr>
               ):(
                 filteredTrades.map((trade,index)=>{
-                  const p=getTradePnL(trade); const dir=getDirection(trade); const sl=Number(trade.stopLoss)||0; const tp=Number(trade.takeProfit)||0; const comm=Number(trade.commission)||0; const swap=Number(trade.swap)||0;
+                  const p=getTradePnL(trade); const dir=getDirection(trade); const tradeOpen=isTradeOpen(trade); const sl=Number(trade.stopLoss)||0; const tp=Number(trade.takeProfit)||0; const comm=Number(trade.commission)||0; const swap=Number(trade.swap)||0;
                   return (
                     <tr key={String(getTicket(trade))+'-'+index} onClick={()=>handleOpenDetail(trade)} style={{cursor:'pointer'}}>
                       <td className="number-font" style={{color:'var(--text-secondary)',fontSize:'12px'}}>{getTicket(trade)}</td>
+                      <td><span style={{fontSize:'11px',fontWeight:700,padding:'3px 8px',borderRadius:'10px',backgroundColor:tradeOpen?'rgba(255,171,0,0.15)':'rgba(0,230,118,0.10)',color:tradeOpen?'#ffab00':'var(--color-win)'}}>{tradeOpen?'Open':'Closed'}</span></td>
                       <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{displayLocal(getOpenTime(trade))}</td>
                       <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{getCloseTime(trade)?displayLocal(getCloseTime(trade)):'—'}</td>
                       <td style={{fontWeight:700,color:'var(--text-bright)'}}>{trade.symbol}{trade.notes?<span style={{marginLeft:'6px'}}><StickyNote size={13} style={{verticalAlign:'-2px'}} /></span>:null}{trade.screenshot?<span style={{marginLeft:'4px'}}><Camera size={13} style={{verticalAlign:'-2px'}} /></span>:null}</td>
@@ -208,17 +215,19 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
             <form onSubmit={handleFormSubmit}>
               <div className="modal-mobile-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px'}}>
                 <div><label style={labelStyle}>Date</label><input type="date" className="ts-input" value={formData.openTime} onChange={e=>setFormData({...formData,openTime:e.target.value})} required /></div>
+                <div><label style={labelStyle}>Close Date</label><input type="date" className="ts-input" value={formData.closeDate} onChange={e=>setFormData({...formData,closeDate:e.target.value})} disabled={formData.isOpen} required={!formData.isOpen} /></div>
                 <div><label style={labelStyle}>Symbol</label><input type="text" className="ts-input" value={formData.symbol} onChange={e=>setFormData({...formData,symbol:e.target.value})} required /></div>
                 <div><label style={labelStyle}>Direction</label><select className="ts-input" value={formData.type} onChange={e=>setFormData({...formData,type:e.target.value})}><option value="buy">BUY</option><option value="sell">SELL</option></select></div>
                 <div><label style={labelStyle}>Volume</label><input type="number" step="any" className="ts-input" value={formData.volume} onChange={e=>setFormData({...formData,volume:e.target.value})} required /></div>
                 <div><label style={labelStyle}>Entry Price</label><input type="number" step="any" className="ts-input" value={formData.entryPrice} onChange={e=>setFormData({...formData,entryPrice:e.target.value})} required /></div>
-                <div><label style={labelStyle}>Exit Price</label><input type="number" step="any" className="ts-input" value={formData.exitPrice} onChange={e=>setFormData({...formData,exitPrice:e.target.value})} required /></div>
+                <div><label style={labelStyle}>Exit Price</label><input type="number" step="any" className="ts-input" value={formData.exitPrice} onChange={e=>setFormData({...formData,exitPrice:e.target.value})} disabled={formData.isOpen} required={!formData.isOpen} /></div>
                 <div><label style={labelStyle}>Stop Loss</label><input type="number" step="any" className="ts-input" value={formData.stopLoss} onChange={e=>setFormData({...formData,stopLoss:e.target.value})} /></div>
                 <div><label style={labelStyle}>Take Profit</label><input type="number" step="any" className="ts-input" value={formData.takeProfit} onChange={e=>setFormData({...formData,takeProfit:e.target.value})} /></div>
                 <div><label style={labelStyle}>Setup</label><select className="ts-input" value={formData.setup} onChange={e=>setFormData({...formData,setup:e.target.value})}>{setupOptions.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
-                <div><label style={labelStyle}>Profit / Loss ({sym})</label><input type="number" step="0.01" className="ts-input" value={formData.profit} onChange={e=>setFormData({...formData,profit:e.target.value})} required /></div>
+                <div><label style={labelStyle}>Profit / Loss ({sym})</label><input type="number" step="0.01" className="ts-input" value={formData.profit} onChange={e=>setFormData({...formData,profit:e.target.value})} required={!formData.isOpen} /></div>
                 <div><label style={labelStyle}>Risk ({sym})</label><input type="number" step="0.01" className="ts-input" value={formData.riskAmount} onChange={e=>setFormData({...formData,riskAmount:e.target.value})} /></div>
                 <div><label style={labelStyle}>Exit Type</label><select className="ts-input" value={formData.exitType} onChange={e=>setFormData({...formData,exitType:e.target.value})}>{EXIT_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
+                <div style={{display:'flex',alignItems:'flex-end'}}><label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',cursor:'pointer',color:'var(--text-bright)'}}><input type="checkbox" checked={formData.isOpen} onChange={e=>setFormData({...formData,isOpen:e.target.checked})} style={{width:'16px',height:'16px',accentColor:'#2962ff',cursor:'pointer'}} />Still open (no exit yet)</label></div>
               </div>
               <div style={{marginTop:'14px'}}><label style={labelStyle}>Notes (optional)</label><textarea rows="2" className="ts-input" value={formData.notes} onChange={e=>setFormData({...formData,notes:e.target.value})} placeholder="Plan, mistakes, lessons..." style={{resize:'vertical'}} /></div>
               <div style={{display:'flex',justifyContent:'flex-end',gap:'10px',marginTop:'24px'}}>
@@ -236,7 +245,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:'16px'}}>
               <div>
                 <h2 style={{margin:0,fontSize:'18px'}}>{editingTrade.symbol} — Trade Detail</h2>
-                <p style={{margin:'4px 0 0 0',fontSize:'12px',color:'var(--text-secondary)'}}>Ticket #{editingTrade.ticket||editingTrade.id} · Local: {displayLocal(editingTrade.openTime)}{editingTrade.closeTime?` → ${displayLocal(editingTrade.closeTime)}`:''} · Duration: {formatDuration(editingTrade)}</p>
+                <p style={{margin:'4px 0 0 0',fontSize:'12px',color:'var(--text-secondary)'}}>Ticket #{editingTrade.ticket||editingTrade.id} · Local: {displayLocal(editingTrade.openTime)}{editingTrade.closeTime?` → ${displayLocal(editingTrade.closeTime)}`:''} · Duration: {formatDuration(editingTrade)} · {isTradeOpen(editingTrade)?'Open':'Closed'}</p>
               </div>
               <button onClick={()=>{setIsDetailOpen(false);setEditingTrade(null);}} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:'18px'}}>✕</button>
             </div>

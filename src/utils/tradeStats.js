@@ -2,6 +2,8 @@
 * Utility functions for My_PnL_Lens Trade Analytics
  */
 
+import { isTradeOpen } from './dateUtils';
+
 export function parseTimestamp(str) {
   if (!str) return 0;
   const raw = String(str).trim();
@@ -166,6 +168,7 @@ export function getLatestTradeYearMonth(trades) {
 export function getCalendarMonthData(trades, year, month) {
   const dailyMap = {};
   for (const trade of trades || []) {
+    if (isTradeOpen(trade)) continue;
     const time = parseTimestamp(
       trade.closeTime || trade.openTime || trade.closeAt || trade.openAt
     );
