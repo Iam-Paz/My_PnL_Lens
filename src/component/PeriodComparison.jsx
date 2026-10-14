@@ -122,7 +122,7 @@ export default function PeriodComparison({ trades = [], startingBalance = 10000,
   const ddB = useMemo(() => calculateDrawdown(tradesB, startingBalance), [tradesB, startingBalance]);
 
   const streaksA = useMemo(() => calculateStreaks(tradesA), [tradesA]);
-  const streaksB = useMemo(() => calculateStreaks(tradesB), [streaksB]);
+  const streaksB = useMemo(() => calculateStreaks(tradesB), [tradesB]);
 
   // Helper function to calculate deltas
   const delta = (valA, valB) => {
