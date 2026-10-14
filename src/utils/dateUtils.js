@@ -95,7 +95,7 @@ const PERIOD_ALIASES = {
  * The ONE period filter for the whole app (Dashboard, Analytics, Share Card).
  * Calendar-day boundaries on the result date — same rules on every page.
  */
-export function filterTradesByPeriod(trades = [], period = 'all') {
+export function filterTradesByPeriod(trades = [], period = 'all', customRange = null) {
   if (!Array.isArray(trades)) return [];
   const raw = String(period).toLowerCase();
   const key = PERIOD_ALIASES[raw] || raw;
@@ -104,6 +104,7 @@ export function filterTradesByPeriod(trades = [], period = 'all') {
   const now = new Date();
   now.setHours(23, 59, 59, 999);
   let start = new Date(now);
+  let end = new Date(now);
 
   if (key === 'today') start.setHours(0, 0, 0, 0);
   else if (key === '7d') { start.setDate(start.getDate() - 6); start.setHours(0, 0, 0, 0); }
@@ -111,11 +112,18 @@ export function filterTradesByPeriod(trades = [], period = 'all') {
   else if (key === '60d') { start.setDate(start.getDate() - 59); start.setHours(0, 0, 0, 0); }
   else if (key === '90d') { start.setDate(start.getDate() - 89); start.setHours(0, 0, 0, 0); }
   else if (key === 'month') start = new Date(now.getFullYear(), now.getMonth(), 1);
+  else if (key === 'custom') {
+    const cs = toDate(customRange && customRange.start);
+    const ce = toDate(customRange && customRange.end);
+    if (!cs || !ce) return [];
+    start = new Date(cs.getFullYear(), cs.getMonth(), cs.getDate());
+    end = new Date(ce.getFullYear(), ce.getMonth(), ce.getDate(), 23, 59, 59, 999);
+  }
   else return trades; // unknown period id → don't filter rather than hide everything
 
   return trades.filter((t) => {
     const d = getTradeResultDate(t);
-    return d && d >= start && d <= now;
+    return d && d >= start && d <= end;
   });
 }
 

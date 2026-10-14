@@ -18,6 +18,7 @@ const PERIODS = [
   { id: '60d', label: '60 Days' },
   { id: '90d', label: '90 Days' },
   { id: 'month', label: 'This Month' },
+  { id: 'custom', label: 'Custom' },
   { id: 'all', label: 'All Time' },
 ];
 
@@ -49,6 +50,23 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEYS.dashboardPeriod, period); } catch { /* storage full/blocked */ }
   }, [period]);
+  // Custom date range (period 'custom'). Defaults to the last 30 days; persisted.
+  const [customRange, setCustomRange] = useState(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEYS.dashboardCustomRange);
+      if (raw) {
+        const v = JSON.parse(raw);
+        if (v && v.start && v.end) return { start: v.start, end: v.end };
+      }
+    } catch { /* defaults below */ }
+    const t = new Date();
+    const s = new Date(t);
+    s.setDate(s.getDate() - 29);
+    return { start: formatDateShort(s), end: formatDateShort(t) };
+  });
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEYS.dashboardCustomRange, JSON.stringify(customRange)); } catch { /* storage full/blocked */ }
+  }, [customRange]);
   const [shareOpen, setShareOpen] = useState(false);
   const [daySel, setDaySel] = useState(null); // { dateKey, trades } for the day-detail modal
   const [calMonth, setCalMonth] = useState(() => {
@@ -57,7 +75,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   });
 
   // Shared period filter (same helper + same close-date basis as Analytics & Share Card)
-  const scopedTrades = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
+  const scopedTrades = useMemo(() => filterTradesByPeriod(trades, period, customRange), [trades, period, customRange]);
   const stats = useMemo(() => computeStats(scopedTrades), [scopedTrades]);
 
   const dailyMap = useMemo(() => {
@@ -202,6 +220,14 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
         </div>
       </div>
 
+      {period === 'custom' && (
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <span style={{ fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.4px', fontSize: '11px' }}>Custom range</span>
+          <input type="date" className="ts-input" style={{ width: 'auto' }} value={customRange.start} max={customRange.end} onChange={(e) => setCustomRange((r) => ({ ...r, start: e.target.value }))} aria-label="Custom range start" />
+          <span>→</span>
+          <input type="date" className="ts-input" style={{ width: 'auto' }} value={customRange.end} min={customRange.start} onChange={(e) => setCustomRange((r) => ({ ...r, end: e.target.value }))} aria-label="Custom range end" />
+        </div>
+      )}
       <SectionTitle>Performance Overview</SectionTitle>
       <div className="metric-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '14px', marginBottom: '28px' }}>
         <Stat label="Net P&L" value={fmt(stats.netPnL, sym, true)} color={stats.netPnL >= 0 ? 'var(--color-win)' : 'var(--color-loss)'} wash={stats.netPnL >= 0 ? 'profit' : 'loss'} />

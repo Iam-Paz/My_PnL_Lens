@@ -10,6 +10,7 @@ export const STORAGE_KEYS = {
   defaultPage: 'mypnllens_default_page',
   lastTab: 'mypnllens_last_tab',
   dashboardPeriod: 'mypnllens_dashboard_period',
+  dashboardCustomRange: 'mypnllens_dashboard_custom_range',
   analyticsPeriod: 'mypnllens_analytics_period',
   displayName: 'mypnllens_display_name',
   sidebarCollapsed: 'mypnllens_sidebar_collapsed',

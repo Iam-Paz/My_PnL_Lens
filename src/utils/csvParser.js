@@ -163,6 +163,7 @@ function buildTrade({
     setup: 'Untagged',
     notes: '',
     emotions: [],
+    reviewed: false,
     source: 'MT5_CSV',
   };
 }
