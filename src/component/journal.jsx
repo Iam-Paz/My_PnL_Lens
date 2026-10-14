@@ -50,7 +50,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const [sortOrder,setSortOrder]=useState('newest');
   const [filterReview,setFilterReview]=useState('all');
   const setupOptions=['Untagged',...playbooks.map(p=>p.title)];
-  const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal() });
+  const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal() });
   const fileInputRef=useRef(null); const screenshotRef=useRef(null);
   useEffect(()=>{ if(!isModalOpen&&!isDetailOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen]);
   function displayLocal(val){ return formatToLocalTime(val, brokerUtcOffset); }
@@ -86,9 +86,9 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   };
   const handleFormSubmit=(e)=>{
     e.preventDefault(); const id=String(Date.now()); const open=formData.openTime; const dir=normalizeType(formData.type);
-    const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:'', symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), exitType:formData.exitType||'', commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null, reviewed:false };
+    const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:'', symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), exitType:formData.exitType||'', commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), riskAmount:cleanNumber(formData.riskAmount), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null, reviewed:false };
     setTrades([newTrade,...trades]); setIsModalOpen(false);
-    setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal() });
+    setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal() });
   };
   // Retagging clears rule ticks — they belong to the previous playbook's rule set.
   const handleTagChange=(id,newSetup)=>setTrades(trades.map(t=>t.id===id?{...t,setup:newSetup,rulesChecked:[]}:t));
@@ -98,7 +98,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const toggleEmotion=(emo)=>setEditingTrade(prev=>{ const cur=prev.emotions||[]; return {...prev, emotions: cur.includes(emo)?cur.filter(e=>e!==emo):[...cur,emo]}; });
   const toggleRule=(rule)=>setEditingTrade(prev=>{ const cur=Array.isArray(prev.rulesChecked)?prev.rulesChecked:[]; return {...prev, rulesChecked: cur.includes(rule)?cur.filter(r=>r!==rule):[...cur,rule]}; });
   const handleScreenshotUpload=(e)=>{ const file=e.target.files[0]; if(!file) return; if(file.size>1.5*1024*1024) return alert('Image too large. Keep screenshots under 1.5MB.'); const reader=new FileReader(); reader.onload=(ev)=>setEditingTrade(prev=>({...prev,screenshot:ev.target.result})); reader.readAsDataURL(file); };
-  const handleSaveDetail=(e)=>{ e.preventDefault(); if(!editingTrade) return; const dir=normalizeType(editingTrade.type); const net=cleanNumber(editingTrade.profit); const updated={ ...editingTrade, id:editingTrade.id, brokerId:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, ticket:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, openTime:editingTrade.openTime, openAt:editingTrade.openTime, closeAt:editingTrade.closeTime||editingTrade.closeAt||'', closeTime:editingTrade.closeTime||'', symbol:(editingTrade.symbol||'').toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(editingTrade.volume), size:cleanNumber(editingTrade.volume), entryPrice:cleanNumber(editingTrade.entryPrice), exitPrice:cleanNumber(editingTrade.exitPrice), stopLoss:cleanNumber(editingTrade.stopLoss), takeProfit:cleanNumber(editingTrade.takeProfit), commission:cleanNumber(editingTrade.commission), swap:cleanNumber(editingTrade.swap), profit:net, pnl:net, setup:editingTrade.setup||'Untagged' }; setTrades(trades.map(t=>t.id===updated.id?updated:t)); setIsDetailOpen(false); setEditingTrade(null); };
+  const handleSaveDetail=(e)=>{ e.preventDefault(); if(!editingTrade) return; const dir=normalizeType(editingTrade.type); const net=cleanNumber(editingTrade.profit); const updated={ ...editingTrade, id:editingTrade.id, brokerId:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, ticket:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, openTime:editingTrade.openTime, openAt:editingTrade.openTime, closeAt:editingTrade.closeTime||editingTrade.closeAt||'', closeTime:editingTrade.closeTime||'', symbol:(editingTrade.symbol||'').toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(editingTrade.volume), size:cleanNumber(editingTrade.volume), entryPrice:cleanNumber(editingTrade.entryPrice), exitPrice:cleanNumber(editingTrade.exitPrice), stopLoss:cleanNumber(editingTrade.stopLoss), takeProfit:cleanNumber(editingTrade.takeProfit), commission:cleanNumber(editingTrade.commission), swap:cleanNumber(editingTrade.swap), profit:net, pnl:net, riskAmount:cleanNumber(editingTrade.riskAmount), setup:editingTrade.setup||'Untagged' }; setTrades(trades.map(t=>t.id===updated.id?updated:t)); setIsDetailOpen(false); setEditingTrade(null); };
   const handleDeleteFromDetail=(id)=>{ if(confirm('Delete this trade?')){ setTrades(trades.filter(t=>t.id!==id)); setIsDetailOpen(false); setEditingTrade(null);} };
 
   const filteredTrades=trades.filter(t=>{
@@ -123,6 +123,9 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const detailPlaybook = editingTrade ? playbooks.find(p=>p.title===(editingTrade.setup||'Untagged')) : null;
   const detailRules = detailPlaybook ? (detailPlaybook.rules||[]).filter(r=>r.trim()!=='') : [];
   const detailChecked = editingTrade && Array.isArray(editingTrade.rulesChecked) ? editingTrade.rulesChecked : [];
+  const riskAmt = editingTrade ? (Number(editingTrade.riskAmount)||0) : 0;
+  const riskBal = Number(settings?.startingBalance) || 10000;
+  const riskPctDisplay = riskAmt>0&&riskBal>0 ? (riskAmt/riskBal*100).toFixed(2)+'%' : '—';
 
   return (
     <div>
@@ -214,6 +217,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div><label style={labelStyle}>Take Profit</label><input type="number" step="any" className="ts-input" value={formData.takeProfit} onChange={e=>setFormData({...formData,takeProfit:e.target.value})} /></div>
                 <div><label style={labelStyle}>Setup</label><select className="ts-input" value={formData.setup} onChange={e=>setFormData({...formData,setup:e.target.value})}>{setupOptions.map(s=><option key={s} value={s}>{s}</option>)}</select></div>
                 <div><label style={labelStyle}>Profit / Loss ({sym})</label><input type="number" step="0.01" className="ts-input" value={formData.profit} onChange={e=>setFormData({...formData,profit:e.target.value})} required /></div>
+                <div><label style={labelStyle}>Risk ({sym})</label><input type="number" step="0.01" className="ts-input" value={formData.riskAmount} onChange={e=>setFormData({...formData,riskAmount:e.target.value})} /></div>
                 <div><label style={labelStyle}>Exit Type</label><select className="ts-input" value={formData.exitType} onChange={e=>setFormData({...formData,exitType:e.target.value})}>{EXIT_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
               </div>
               <div style={{marginTop:'14px'}}><label style={labelStyle}>Notes (optional)</label><textarea rows="2" className="ts-input" value={formData.notes} onChange={e=>setFormData({...formData,notes:e.target.value})} placeholder="Plan, mistakes, lessons..." style={{resize:'vertical'}} /></div>
@@ -252,6 +256,8 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div><label style={labelStyle}>Commission</label><input type="number" step="any" className="ts-input" value={editingTrade.commission??''} onChange={e=>handleDetailChange('commission',e.target.value)} /></div>
                 <div><label style={labelStyle}>Swap</label><input type="number" step="any" className="ts-input" value={editingTrade.swap??''} onChange={e=>handleDetailChange('swap',e.target.value)} /></div>
                 <div><label style={labelStyle}>Net P&L ({sym})</label><input type="number" step="any" className="ts-input" value={editingTrade.profit??''} onChange={e=>handleDetailChange('profit',e.target.value)} /></div>
+                <div><label style={labelStyle}>Risk ({sym})</label><input type="number" step="0.01" className="ts-input" value={editingTrade.riskAmount??''} onChange={e=>handleDetailChange('riskAmount',e.target.value)} /></div>
+                <div><label style={labelStyle}>Risk % of Balance</label><input type="text" className="ts-input" value={riskPctDisplay} readOnly style={{color:'var(--text-bright)',fontWeight:700}} /></div>
                 <div><label style={labelStyle}>Playbook Setup</label><select className="ts-input" value={editingTrade.setup||'Untagged'} onChange={e=>{handleDetailChange('setup',e.target.value); setEditingTrade(prev=>({...prev,rulesChecked:[]}));}}>{getOptionsForTrade(editingTrade.setup).map(s=><option key={s} value={s}>{s}</option>)}</select></div>
                 <div><label style={labelStyle}>Exit Type</label><select className="ts-input" value={editingTrade.exitType||''} onChange={e=>handleDetailChange('exitType',e.target.value)}>{EXIT_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
               </div>

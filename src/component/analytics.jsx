@@ -127,6 +127,7 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
 
   const buySell = useMemo(() => buildBuySell(scoped), [scoped]);
   const dowRows = useMemo(() => buildDow(scoped), [scoped]);
+  const dowChartData = dowRows.map((r) => ({ name: r.day, pnl: r.pnl, count: r.count }));
   const monthlyRows = useMemo(() => buildMonthly(trades), [trades]);
 
   const directionBarData = [
@@ -507,6 +508,25 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
 
         <div className="ts-card">
           <h3 style={cardH}>Day-of-Week Edge</h3>
+          <div style={{ height: '200px', marginBottom: '20px' }}>
+            {dowRows.every((r) => r.count === 0) ? (
+              <EmptyMsg />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dowChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barCategoryGap="30%">
+                  <CartesianGrid strokeDasharray="3 3" stroke={cc.grid} vertical={false} />
+                  <XAxis dataKey="name" stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke={cc.tick} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => `${sym}${v}`} />
+                  <Tooltip contentStyle={tooltipStyle} labelStyle={{ color: 'var(--text-secondary)' }} />
+                  <Bar dataKey="pnl" radius={[4, 4, 0, 0]}>
+                    {dowChartData.map((s, i) => (
+                      <Cell key={i} fill={s.pnl >= 0 ? cc.up : cc.down} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="ts-table">
               <thead>
@@ -515,6 +535,8 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
                   <th className="num">Trades</th>
                   <th className="num">Win %</th>
                   <th className="num">Net P&L</th>
+                  <th className="num">PF</th>
+                  <th className="num">Expectancy</th>
                 </tr>
               </thead>
               <tbody>
@@ -525,6 +547,10 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
                     <td className="num number-font" style={{ color: 'var(--color-sky)' }}>{r.winRate}%</td>
                     <td className="num number-font" style={{ fontWeight: 700, color: r.pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
                       {fmt(r.pnl, sym, true)}
+                    </td>
+                    <td className="num number-font">{r.pf}</td>
+                    <td className="num number-font" style={{ fontWeight: 700, color: r.expectancy >= 0 ? 'var(--color-win)' : 'var(--color-loss)' }}>
+                      {fmt(r.expectancy, sym, true)}
                     </td>
                   </tr>
                 ))}
@@ -751,21 +777,26 @@ function buildBuySell(trades) {
 
 function buildDow(trades) {
   const names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const arr = names.map((n) => ({ day: n, count: 0, pnl: 0, wins: 0 }));
+  const arr = names.map((n) => ({ day: n, count: 0, pnl: 0, wins: 0, grossProfit: 0, grossLoss: 0 }));
   for (const t of trades) {
     const d = getTradeResultDate(t);
     if (!d) continue;
     const idx = d.getDay();
+    const p = Number(t.profit ?? t.pnl) || 0;
     arr[idx].count += 1;
-    arr[idx].pnl += Number(t.profit ?? t.pnl) || 0;
-    if (Number(t.profit ?? t.pnl) > 0) arr[idx].wins += 1;
+    arr[idx].pnl += p;
+    if (p > 0) { arr[idx].wins += 1; arr[idx].grossProfit += p; }
+    else if (p < 0) { arr[idx].grossLoss += Math.abs(p); }
   }
   return [1, 2, 3, 4, 5, 6, 0].map((i) => {
     const r = arr[i];
+    const pf = r.grossLoss > 0 ? (r.grossProfit / r.grossLoss).toFixed(2) : r.grossProfit > 0 ? '∞' : '0.00';
     return {
       ...r,
       winRate: r.count ? ((r.wins / r.count) * 100).toFixed(1) : '0.0',
       pnl: Number(r.pnl.toFixed(2)),
+      pf,
+      expectancy: r.count ? Number((r.pnl / r.count).toFixed(2)) : 0,
     };
   });
 }
