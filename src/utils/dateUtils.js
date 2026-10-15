@@ -211,7 +211,7 @@ export function sortTradesByDate(trades = [], newestFirst = true) {
   return [...trades].sort((a, b) => {
     const dateA = toDate(a.openAt || a.openTime || a.date) || new Date(0);
     const dateB = toDate(b.openAt || b.openTime || b.date) || new Date(0);
-    return newestFirst ? dateB - dateA : db - da;
+    return newestFirst ? dateB - dateA : dateA - dateB;
   });
 }
 
