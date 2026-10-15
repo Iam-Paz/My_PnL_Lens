@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote, Filter } from 'lucide-react';
-import { toDate, isTradeOpen, filterTradesGlobal, countGlobalFilter } from '../utils/dateUtils';
+import { useState, useRef, useEffect, Fragment } from 'react';
+import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote, Filter, ChevronUp, ChevronDown } from 'lucide-react';
+import { toDate, isTradeOpen, filterTradesGlobal, countGlobalFilter, sanitizeJournalFilters, sanitizeJournalColumns, moveColumnId } from '../utils/dateUtils';
+import { STORAGE_KEYS } from '../utils/storageKeys';
 import { parseCSVToTrades } from '../utils/csvParser';
 import { formatToLocalTime } from '../utils/tradeStats';
 
@@ -44,21 +45,79 @@ function cleanNumber(val){
   return match?parseFloat(match[0])||0:0;
 }
 
+// All 15 toggleable journal columns in default order. The Action column is
+// fixed (always visible, always last) so edit/delete are never lost.
+const JOURNAL_ALL_COLUMNS = [
+  { id: 'ticket', label: 'Ticket' },
+  { id: 'status', label: 'Status' },
+  { id: 'open', label: 'Open (Local)' },
+  { id: 'close', label: 'Close (Local)' },
+  { id: 'symbol', label: 'Symbol' },
+  { id: 'dir', label: 'Dir' },
+  { id: 'vol', label: 'Vol' },
+  { id: 'entry', label: 'Entry' },
+  { id: 'sl', label: 'SL' },
+  { id: 'tp', label: 'TP' },
+  { id: 'exit', label: 'Exit' },
+  { id: 'comm', label: 'Comm' },
+  { id: 'swap', label: 'Swap' },
+  { id: 'pnl', label: 'Net P&L' },
+  { id: 'setup', label: 'Setup' },
+];
+const JOURNAL_ALL_IDS = JOURNAL_ALL_COLUMNS.map((c) => c.id);
+const JOURNAL_HEAD_CELLS = {
+  ticket: <th>Ticket</th>,
+  status: <th>Status</th>,
+  open: <th>Open (Local)</th>,
+  close: <th>Close (Local)</th>,
+  symbol: <th>Symbol</th>,
+  dir: <th className="center">Dir</th>,
+  vol: <th className="num">Vol</th>,
+  entry: <th className="num">Entry</th>,
+  sl: <th className="num">SL</th>,
+  tp: <th className="num">TP</th>,
+  exit: <th className="num">Exit</th>,
+  comm: <th className="num">Comm</th>,
+  swap: <th className="num">Swap</th>,
+  pnl: <th className="num">Net P&L</th>,
+  setup: <th>Setup</th>,
+};
+function readJournalJSON(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch { return fallback; }
+}
+function writeJournalJSON(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage full/blocked */ }
+}
+function loadJournalFilters() { return sanitizeJournalFilters(readJournalJSON(STORAGE_KEYS.journalFilters, null)); }
+function loadJournalColumns() { return sanitizeJournalColumns(readJournalJSON(STORAGE_KEYS.journalColumns, null), JOURNAL_ALL_IDS); }
 export default function Journal({ trades=[], setTrades, playbooks=[], logActivity, settings, globalFilter=null, onOpenFilters=null }){
   const brokerUtcOffset = settings?.brokerUtcOffset ?? 2;
   const sym = ({ USD: '$', EUR: '€', GBP: '£', NGN: '₦' })[settings?.currency] || '$';
   const [isModalOpen,setIsModalOpen]=useState(false);
   const [isDetailOpen,setIsDetailOpen]=useState(false);
   const [editingTrade,setEditingTrade]=useState(null);
-  const [search,setSearch]=useState('');
-  const [sortOrder,setSortOrder]=useState('newest');
-  const [filterReview,setFilterReview]=useState('all');
-  const [filterStatus,setFilterStatus]=useState('all');
+  const [search,setSearch]=useState(()=>loadJournalFilters().search);
+  const [sortOrder,setSortOrder]=useState(()=>loadJournalFilters().sort);
+  const [filterReview,setFilterReview]=useState(()=>loadJournalFilters().review);
+  const [filterStatus,setFilterStatus]=useState(()=>loadJournalFilters().status);
+  const [colPrefs,setColPrefs]=useState(()=>loadJournalColumns());
+  const [colPanelOpen,setColPanelOpen]=useState(false);
+  useEffect(()=>{ writeJournalJSON(STORAGE_KEYS.journalFilters,{search,sort:sortOrder,review:filterReview,status:filterStatus}); },[search,sortOrder,filterReview,filterStatus]);
+  useEffect(()=>{ writeJournalJSON(STORAGE_KEYS.journalColumns,colPrefs); },[colPrefs]);
   const setupOptions=['Untagged',...playbooks.map(p=>p.title)];
   const activeFilters=countGlobalFilter(globalFilter);
+  const visibleIds=colPrefs.order.filter((id)=>colPrefs.visible.includes(id));
+  const hiddenCount=JOURNAL_ALL_IDS.length-colPrefs.visible.length;
+  const toggleColumn=(id)=>setColPrefs((prev)=>{ const on=prev.visible.includes(id); if(on&&prev.visible.length<=1) return prev; return { order:prev.order, visible:on?prev.visible.filter((v)=>v!==id):[...prev.visible,id] }; });
+  const moveColumn=(id,dir)=>setColPrefs((prev)=>({ order:moveColumnId(prev.order,id,dir), visible:prev.visible }));
+  const resetColumns=()=>setColPrefs({ visible:JOURNAL_ALL_IDS.slice(), order:JOURNAL_ALL_IDS.slice() });
   const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
   const fileInputRef=useRef(null); const screenshotRef=useRef(null);
-  useEffect(()=>{ if(!isModalOpen&&!isDetailOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen]);
+  useEffect(()=>{ if(!isModalOpen&&!isDetailOpen&&!colPanelOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen,colPanelOpen]);
   function displayLocal(val){ return formatToLocalTime(val, brokerUtcOffset); }
   const handleImportClick=()=>fileInputRef.current.click();
   const handleFileUpload=(event)=>{
@@ -153,6 +212,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
           <option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="pnlHigh">Highest P&L</option><option value="pnlLow">Lowest P&L</option>
         </select>
         <button onClick={()=>{ if(onOpenFilters) onOpenFilters(); }} className="ts-btn" title="Global filters — one filter shared by Dashboard, Analytics & Journal" style={{display:'flex',alignItems:'center',gap:'6px'}}><Filter size={14} />Filters{activeFilters>0?` (${activeFilters})`:''}</button>
+        <button onClick={()=>setColPanelOpen(true)} className="ts-btn" title="Show, hide and reorder journal columns" style={{display:'flex',alignItems:'center',gap:'6px'}}>Columns{hiddenCount>0?` (${hiddenCount} hidden)`:''}</button>
         <span style={{alignSelf:'center',fontSize:'12px',color:'var(--text-muted)'}}>{filteredTrades.length} of {trades.length} trades</span>
         <select className="ts-input" value={filterReview} onChange={e=>setFilterReview(e.target.value)} style={{width:'150px'}}>
           <option value="all">All Reviews</option><option value="unreviewed">Needs Review</option><option value="reviewed">Reviewed</option>
@@ -165,34 +225,33 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
       <div className="ts-card" style={{padding:0,overflow:'hidden'}}>
         <div style={{overflowX:'auto'}}>
           <table className="ts-table">
-            <thead><tr><th>Ticket</th><th>Status</th><th>Open (Local)</th><th>Close (Local)</th><th>Symbol</th><th className="center">Dir</th><th className="num">Vol</th><th className="num">Entry</th><th className="num">SL</th><th className="num">TP</th><th className="num">Exit</th><th className="num">Comm</th><th className="num">Swap</th><th className="num">Net P&L</th><th>Setup</th><th className="center">Action</th></tr></thead>
+            <thead><tr>{visibleIds.map((id)=><Fragment key={id}>{JOURNAL_HEAD_CELLS[id]}</Fragment>)}<th className="center">Action</th></tr></thead>
             <tbody>
               {filteredTrades.length===0?(
-                <tr><td colSpan="16" style={{padding:'40px',textAlign:'center',color:'var(--text-secondary)'}}>No trades match filters.</td></tr>
+                <tr><td colSpan={visibleIds.length+1} style={{padding:'40px',textAlign:'center',color:'var(--text-secondary)'}}>No trades match filters.</td></tr>
               ):(
                 filteredTrades.map((trade,index)=>{
                   const p=getTradePnL(trade); const dir=getDirection(trade); const tradeOpen=isTradeOpen(trade); const sl=Number(trade.stopLoss)||0; const tp=Number(trade.takeProfit)||0; const comm=Number(trade.commission)||0; const swap=Number(trade.swap)||0;
+                  const cells={
+                    ticket:(<td className="number-font" style={{color:'var(--text-secondary)',fontSize:'12px'}}>{getTicket(trade)}</td>),
+                    status:(<td><span style={{fontSize:'11px',fontWeight:700,padding:'3px 8px',borderRadius:'10px',backgroundColor:tradeOpen?'rgba(255,171,0,0.15)':'rgba(0,230,118,0.10)',color:tradeOpen?'#ffab00':'var(--color-win)'}}>{tradeOpen?'Open':'Closed'}</span></td>),
+                    open:(<td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{displayLocal(getOpenTime(trade))}</td>),
+                    close:(<td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{getCloseTime(trade)?displayLocal(getCloseTime(trade)):'—'}</td>),
+                    symbol:(<td style={{fontWeight:700,color:'var(--text-bright)'}}>{trade.symbol}{trade.notes?<span style={{marginLeft:'6px'}}><StickyNote size={13} style={{verticalAlign:'-2px'}} /></span>:null}{trade.screenshot?<span style={{marginLeft:'4px'}}><Camera size={13} style={{verticalAlign:'-2px'}} /></span>:null}</td>),
+                    dir:(<td className="center"><span className={dir==='buy'?'badge-buy':'badge-sell'}>{dir.toUpperCase()}</span></td>),
+                    vol:(<td className="num number-font">{getVolume(trade)}</td>),
+                    entry:(<td className="num number-font">{trade.entryPrice||'—'}</td>),
+                    sl:(<td className="num number-font" style={{color:'var(--text-secondary)'}}>{sl||'—'}</td>),
+                    tp:(<td className="num number-font" style={{color:'var(--text-secondary)'}}>{tp||'—'}</td>),
+                    exit:(<td className="num number-font">{trade.exitPrice||'—'}</td>),
+                    comm:(<td className="num number-font" style={{color:'var(--text-secondary)'}}>{comm?comm.toFixed(2):'—'}</td>),
+                    swap:(<td className="num number-font" style={{color:'var(--text-secondary)'}}>{swap?swap.toFixed(2):'—'}</td>),
+                    pnl:(<td className="num number-font" style={{fontWeight:700,color:p>=0?'var(--color-win)':'var(--color-loss)'}}>{p>=0?`+${sym}${p.toFixed(2)}`:`-${sym}${Math.abs(p).toFixed(2)}`}</td>),
+                    setup:(<td onClick={e=>e.stopPropagation()}><select value={trade.setup||'Untagged'} onChange={e=>handleTagChange(trade.id,e.target.value)} style={{backgroundColor:'var(--bg-main)',color:trade.setup==='Untagged'?'var(--text-muted)':'var(--accent-blue)',border:'1px solid var(--border-color)',borderRadius:'4px',padding:'4px 8px',fontSize:'12px',fontWeight:600}}>{getOptionsForTrade(trade.setup).map(s=><option key={s} value={s}>{s}</option>)}</select></td>),
+                  };
                   return (
                     <tr key={String(getTicket(trade))+'-'+index} onClick={()=>handleOpenDetail(trade)} style={{cursor:'pointer'}}>
-                      <td className="number-font" style={{color:'var(--text-secondary)',fontSize:'12px'}}>{getTicket(trade)}</td>
-                      <td><span style={{fontSize:'11px',fontWeight:700,padding:'3px 8px',borderRadius:'10px',backgroundColor:tradeOpen?'rgba(255,171,0,0.15)':'rgba(0,230,118,0.10)',color:tradeOpen?'#ffab00':'var(--color-win)'}}>{tradeOpen?'Open':'Closed'}</span></td>
-                      <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{displayLocal(getOpenTime(trade))}</td>
-                      <td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{getCloseTime(trade)?displayLocal(getCloseTime(trade)):'—'}</td>
-                      <td style={{fontWeight:700,color:'var(--text-bright)'}}>{trade.symbol}{trade.notes?<span style={{marginLeft:'6px'}}><StickyNote size={13} style={{verticalAlign:'-2px'}} /></span>:null}{trade.screenshot?<span style={{marginLeft:'4px'}}><Camera size={13} style={{verticalAlign:'-2px'}} /></span>:null}</td>
-                      <td className="center"><span className={dir==='buy'?'badge-buy':'badge-sell'}>{dir.toUpperCase()}</span></td>
-                      <td className="num number-font">{getVolume(trade)}</td>
-                      <td className="num number-font">{trade.entryPrice||'—'}</td>
-                      <td className="num number-font" style={{color:'var(--text-secondary)'}}>{sl||'—'}</td>
-                      <td className="num number-font" style={{color:'var(--text-secondary)'}}>{tp||'—'}</td>
-                      <td className="num number-font">{trade.exitPrice||'—'}</td>
-                      <td className="num number-font" style={{color:'var(--text-secondary)'}}>{comm?comm.toFixed(2):'—'}</td>
-                      <td className="num number-font" style={{color:'var(--text-secondary)'}}>{swap?swap.toFixed(2):'—'}</td>
-                      <td className="num number-font" style={{fontWeight:700,color:p>=0?'var(--color-win)':'var(--color-loss)'}}>{p>=0?`+${sym}${p.toFixed(2)}`:`-${sym}${Math.abs(p).toFixed(2)}`}</td>
-                      <td onClick={e=>e.stopPropagation()}>
-                        <select value={trade.setup||'Untagged'} onChange={e=>handleTagChange(trade.id,e.target.value)} style={{backgroundColor:'var(--bg-main)',color:trade.setup==='Untagged'?'var(--text-muted)':'var(--accent-blue)',border:'1px solid var(--border-color)',borderRadius:'4px',padding:'4px 8px',fontSize:'12px',fontWeight:600}}>
-                          {getOptionsForTrade(trade.setup).map(s=><option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
+                      {visibleIds.map((id)=><Fragment key={id}>{cells[id]}</Fragment>)}
                       <td className="center" onClick={e=>e.stopPropagation()}>
                         <button onClick={()=>handleOpenDetail(trade)} style={{background:'none',border:'none',cursor:'pointer',fontSize:'15px',marginRight:'8px'}}><Pencil size={15} style={{verticalAlign:'middle'}} /></button>
                         <button onClick={()=>handleDeleteTrade(trade.id)} style={{background:'none',border:'none',color:'var(--text-muted)',cursor:'pointer',fontSize:'15px'}}>✕</button>
@@ -206,6 +265,39 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
         </div>
       </div>
 
+
+      {colPanelOpen && (
+        <div style={overlayStyle}>
+          <div className="ts-card modal-mobile" style={{margin:'auto',width:'420px',maxWidth:'92%',maxHeight:'86vh',overflowY:'auto',backgroundColor:'var(--bg-surface)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'8px'}}>
+              <h2 style={{margin:0,fontSize:'18px'}}>Journal Columns</h2>
+              <button onClick={()=>setColPanelOpen(false)} className="ts-btn ts-btn-ghost">Close</button>
+            </div>
+            <p style={{fontSize:'12px',color:'var(--text-secondary)',marginTop:0}}>Tick columns to show them. Arrows reorder. Action stays fixed on the right.</p>
+            <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+              {colPrefs.order.map((id,index)=>{
+                const col=JOURNAL_ALL_COLUMNS.find((c)=>c.id===id);
+                if(!col) return null;
+                const on=colPrefs.visible.includes(id);
+                const lastOne=on&&colPrefs.visible.length<=1;
+                return (
+                  <div key={id} style={{display:'flex',alignItems:'center',gap:'8px',backgroundColor:'var(--bg-main)',border:'1px solid var(--border-color)',borderRadius:'8px',padding:'8px 10px'}}>
+                    <button type="button" onClick={()=>moveColumn(id,-1)} disabled={index===0} className="ts-btn ts-btn-ghost" style={{padding:'4px 8px'}} title="Move up"><ChevronUp size={14} /></button>
+                    <button type="button" onClick={()=>moveColumn(id,1)} disabled={index===colPrefs.order.length-1} className="ts-btn ts-btn-ghost" style={{padding:'4px 8px'}} title="Move down"><ChevronDown size={14} /></button>
+                    <label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',cursor:lastOne?'not-allowed':'pointer',color:'var(--text-bright)',flex:1}}>
+                      <input type="checkbox" checked={on} disabled={lastOne} onChange={()=>toggleColumn(id)} style={{width:'16px',height:'16px',accentColor:'#2962ff',cursor:lastOne?'not-allowed':'pointer'}} />
+                      {col.label}
+                    </label>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display:'flex',justifyContent:'flex-end',marginTop:'16px'}}>
+              <button type="button" onClick={resetColumns} className="ts-btn ts-btn-ghost">Reset to default</button>
+            </div>
+          </div>
+        </div>
+      )}
       {isModalOpen && (
         <div style={overlayStyle}>
           <div className="ts-card modal-mobile" style={{margin:'auto',width:'520px',maxWidth:'92%',backgroundColor:'var(--bg-surface)'}}>

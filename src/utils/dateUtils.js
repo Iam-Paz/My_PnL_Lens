@@ -243,3 +243,77 @@ export function getInactiveDays(trades = [], now = new Date()) {
   const diff = Math.round((b - a) / 86400000);
   return Math.max(0, diff);
 }
+
+/**
+ * Vocabularies for the Journal's own filter bar (search/sort/review/status).
+ * Persisted separately from the cross-page global filter.
+ */
+export const JOURNAL_SORTS = ['newest', 'oldest', 'pnlHigh', 'pnlLow'];
+export const JOURNAL_REVIEWS = ['all', 'unreviewed', 'reviewed'];
+export const JOURNAL_STATUSES = ['all', 'open', 'closed'];
+
+/**
+ * Shape-guard for the persisted journal filter bar. Corrupt or tampered
+ * stored values fall back per-field, so storage can never break the page.
+ * Pure: same input always gives same output.
+ */
+export function sanitizeJournalFilters(v) {
+  const src = v && typeof v === 'object' ? v : {};
+  const search = typeof src.search === 'string' ? src.search.slice(0, 120) : '';
+  const sort = JOURNAL_SORTS.includes(src.sort) ? src.sort : 'newest';
+  const review = JOURNAL_REVIEWS.includes(src.review) ? src.review : 'all';
+  const status = JOURNAL_STATUSES.includes(src.status) ? src.status : 'all';
+  return { search, sort, review, status };
+}
+
+/**
+ * Shape-guard for persisted journal column prefs: {visible:[ids], order:[ids]}.
+ * - order is repaired into a permutation of allIds (unknown ids dropped,
+ *   dupes collapsed, missing ids appended in default position)
+ * - visible keeps known ids only (defaults to all when absent)
+ * Pure: same input always gives same output.
+ */
+export function sanitizeJournalColumns(v, allIds = []) {
+  const known = Array.isArray(allIds) ? allIds.filter((x) => typeof x === 'string') : [];
+  const src = v && typeof v === 'object' ? v : {};
+  const seen = {};
+  const order = [];
+  if (Array.isArray(src.order)) {
+    for (const id of src.order) {
+      if (typeof id === 'string' && known.includes(id) && !seen[id]) {
+        seen[id] = true;
+        order.push(id);
+      }
+    }
+  }
+  for (const id of known) {
+    if (!seen[id]) {
+      seen[id] = true;
+      order.push(id);
+    }
+  }
+  let visible;
+  if (Array.isArray(src.visible)) {
+    visible = src.visible.filter((id) => typeof id === 'string' && known.includes(id));
+  } else {
+    visible = known.slice();
+  }
+  return { visible, order };
+}
+
+/**
+ * Move one column id up (dir=-1) or down (dir=+1) inside order.
+ * Clamped at the ends; unknown ids leave order untouched.
+ * Pure: never mutates, always returns a new array.
+ */
+export function moveColumnId(order, id, dir) {
+  const list = Array.isArray(order) ? order.slice() : [];
+  const i = list.indexOf(id);
+  if (i === -1) return list;
+  const j = dir < 0 ? i - 1 : i + 1;
+  if (j < 0 || j >= list.length) return list;
+  const tmp = list[i];
+  list[i] = list[j];
+  list[j] = tmp;
+  return list;
+}
