@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from 'recharts';
-import { TrendingUp, Flame, Snowflake, ChevronLeft, ChevronRight } from 'lucide-react';
+import { TrendingUp, Flame, Snowflake, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 import {
   calculateDrawdown,
   calculateStreaks,
@@ -13,7 +13,7 @@ import {
   calculateRMultipleStats,
   parseTimestamp,
 } from '../utils/tradeStats';
-import { filterTradesByPeriod, getTradeResultDate, formatDateShort, isTradeOpen } from '../utils/dateUtils';
+import { filterTradesByPeriod, getTradeResultDate, formatDateShort, isTradeOpen, filterTradesGlobal, countGlobalFilter } from '../utils/dateUtils';
 import { STORAGE_KEYS } from '../utils/storageKeys.js';
 import DayTradesModal from './DayTradesModal.jsx';
 import { useSkin, chartPalette } from '../utils/themeConfig.js';
@@ -39,7 +39,7 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 // NOTE: period filtering + result-date logic live in dateUtils.js (shared with
 // Dashboard & Share Card) so every page scopes the same trades for a period.
 
-export default function Analytics({ trades = [], playbooks = [], settings }) {
+export default function Analytics({ trades = [], playbooks = [], settings, globalFilter = null, onOpenFilters = null }) {
   const cfg = settings || { startingBalance: 10000, currency: 'USD', brokerUtcOffset: 2 };
   const sym = CUR[cfg.currency] || '$';
   const brokerUtcOffset = cfg.brokerUtcOffset ?? 2;
@@ -60,8 +60,12 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
 
   // Open trades have no realized result yet, so the whole page analyses
   // closed trades only; the open count stays visible in the header.
-  const closed = useMemo(() => (trades || []).filter((t) => !isTradeOpen(t)), [trades]);
+  const closed = useMemo(
+    () => filterTradesGlobal((trades || []).filter((t) => !isTradeOpen(t)), globalFilter),
+    [trades, globalFilter]
+  );
   const openCount = (trades || []).length - closed.length;
+  const activeFilters = countGlobalFilter(globalFilter);
 
   const latestYM = useMemo(() => getLatestTradeYearMonth(closed), [closed]);
   const [calYear, setCalYear] = useState(latestYM.year);
@@ -72,7 +76,10 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
     setCalMonth(latestYM.month);
   }, [latestYM.year, latestYM.month]);
 
-  const scoped = useMemo(() => filterTradesByPeriod(trades, period), [trades, period]);
+  const scoped = useMemo(
+    () => filterTradesGlobal(filterTradesByPeriod(trades, period), globalFilter),
+    [trades, period, globalFilter]
+  );
 
   const overview = useMemo(() => computeOverview(scoped), [scoped]);
   const drawdown = useMemo(
@@ -183,6 +190,20 @@ export default function Analytics({ trades = [], playbooks = [], settings }) {
               {p.label}
             </button>
           ))}
+          <button
+            onClick={onOpenFilters}
+            className="ts-btn"
+            title="Global filters — one filter shared by Dashboard, Analytics & Journal"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)',
+              padding: '7px 12px',
+              fontSize: '12px',
+            }}
+          >
+            <Filter size={12} /> Filters{activeFilters > 0 ? ` (${activeFilters})` : ''}
+          </button>
         </div>
       </div>
 

@@ -3,8 +3,8 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from 'recharts';
-import { LayoutDashboard, Share2, TriangleAlert, Flame, Snowflake } from 'lucide-react';
-import { formatDateShort, filterTradesByPeriod, getTradeResultDate, getInactiveDays, getLastActivityDate, isTradeOpen } from '../utils/dateUtils';
+import { LayoutDashboard, Share2, TriangleAlert, Flame, Snowflake, Filter } from 'lucide-react';
+import { formatDateShort, filterTradesByPeriod, getTradeResultDate, getInactiveDays, getLastActivityDate, isTradeOpen, filterTradesGlobal, countGlobalFilter } from '../utils/dateUtils';
 import { sortTradesChronological } from '../utils/tradeStats';
 import { useSkin, chartPalette } from '../utils/themeConfig.js';
 import ShareCard from './ShareCard.jsx';
@@ -28,7 +28,7 @@ function getTradePnL(t) {
   return Number(t.pnl ?? t.profit) || 0;
 }
 
-export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_Lens' }) {
+export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_Lens', globalFilter = null, onOpenFilters = null }) {
   const cfg = settings || {
     startingBalance: 10000,
     riskPerTrade: 1,
@@ -75,12 +75,18 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   });
 
   // Shared period filter (same helper + same close-date basis as Analytics & Share Card)
-  const scopedTrades = useMemo(() => filterTradesByPeriod(trades, period, customRange), [trades, period, customRange]);
+  const periodTrades = useMemo(() => filterTradesByPeriod(trades, period, customRange), [trades, period, customRange]);
+  // Global cross-page filter applies on top of the period scope.
+  const scopedTrades = useMemo(() => filterTradesGlobal(periodTrades, globalFilter), [periodTrades, globalFilter]);
+  // All trades under the global filter: feeds the calendar + Share Card.
+  // (Risk cards below deliberately stay account-wide — see acctToday.)
+  const gTrades = useMemo(() => filterTradesGlobal(trades, globalFilter), [trades, globalFilter]);
+  const activeFilters = countGlobalFilter(globalFilter);
   const stats = useMemo(() => computeStats(scopedTrades), [scopedTrades]);
 
   const dailyMap = useMemo(() => {
     const m = {};
-    for (const t of trades) {
+    for (const t of gTrades) {
       if (isTradeOpen(t)) continue;
       const d = getTradeResultDate(t);
       if (!d) continue;
@@ -93,12 +99,12 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
       else if (p < 0) m[key].losses += 1;
     }
     return m;
-  }, [trades]);
+  }, [gTrades]);
 
   // Day -> trades index using the SAME bucketing as dailyMap above (keep in sync).
   const dayTrades = useMemo(() => {
     const m = {};
-    for (const t of trades) {
+    for (const t of gTrades) {
       if (isTradeOpen(t)) continue;
       const d = getTradeResultDate(t);
       if (!d) continue;
@@ -106,7 +112,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
       (m[key] = m[key] || []).push(t);
     }
     return m;
-  }, [trades]);
+  }, [gTrades]);
 
   const equityData = useMemo(() => {
     // Sort trades chronologically (oldest first) for equity accumulation
@@ -153,8 +159,22 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
   const showDailyDd = dailyDdPct > 0;
   const showMaxDd = (Number(cfg.maxDrawdownPercent) || 0) > 0;
   const todayKey = formatDateShort(new Date());
-  const todayPnL = dailyMap[todayKey]?.pnl || 0;
-  const todayTradeCount = dailyMap[todayKey]?.count || 0;
+  // Account-wide today's figures for the Daily Drawdown card: risk monitors
+  // never obey page filters, so a filtered view can't hide real danger.
+  const acctToday = useMemo(() => {
+    let pnl = 0;
+    let count = 0;
+    for (const t of trades || []) {
+      if (isTradeOpen(t)) continue;
+      const d = getTradeResultDate(t);
+      if (!d || formatDateShort(d) !== todayKey) continue;
+      pnl += getTradePnL(t);
+      count += 1;
+    }
+    return { pnl, count };
+  }, [trades, todayKey]);
+  const todayPnL = acctToday.pnl;
+  const todayTradeCount = acctToday.count;
   const dailyDdLimit = (Number(cfg.startingBalance) || 10000) * (dailyDdPct / 100);
   const dailyDdUsed = Math.max(0, -todayPnL);
   const dailyDdUsage = dailyDdLimit > 0 ? Math.min(100, (dailyDdUsed / dailyDdLimit) * 100) : 0;
@@ -206,6 +226,20 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
               {p.label}
             </button>
           ))}
+          <button
+            onClick={onOpenFilters}
+            className="ts-btn"
+            title="Global filters — one filter shared by Dashboard, Analytics & Journal"
+            style={{
+              backgroundColor: 'var(--bg-surface)',
+              color: 'var(--text-secondary)',
+              border: '1px solid var(--border-color)',
+              padding: '7px 12px',
+              fontSize: '12px',
+            }}
+          >
+            <Filter size={12} /> Filters{activeFilters > 0 ? ` (${activeFilters})` : ''}
+          </button>
           <button
             onClick={() => setShareOpen(true)}
             className="ts-btn"
@@ -410,7 +444,7 @@ export default function Dashboard({ trades = [], settings, brandName = 'My_PnL_L
         <Stat label="Average Trade" value={fmt(stats.avgTrade, sym, true)} />
       </div>
 
-      {shareOpen && <ShareCard trades={trades} settings={cfg} brandName={brandName} onClose={() => setShareOpen(false)} />}
+      {shareOpen && <ShareCard trades={gTrades} settings={cfg} brandName={brandName} onClose={() => setShareOpen(false)} />}
       {daySel && <DayTradesModal dateKey={daySel.dateKey} trades={daySel.trades} sym={sym} onClose={() => setDaySel(null)} />}
     </div>
   );

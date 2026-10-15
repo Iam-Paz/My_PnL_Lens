@@ -12,6 +12,7 @@ export const STORAGE_KEYS = {
   dashboardPeriod: 'mypnllens_dashboard_period',
   dashboardCustomRange: 'mypnllens_dashboard_custom_range',
   analyticsPeriod: 'mypnllens_analytics_period',
+  globalFilter: 'mypnllens_global_filter',
   displayName: 'mypnllens_display_name',
   sidebarCollapsed: 'mypnllens_sidebar_collapsed',
   myTickets: 'mypnllens_my_tickets',

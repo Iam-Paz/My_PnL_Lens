@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote } from 'lucide-react';
-import { toDate, isTradeOpen } from '../utils/dateUtils';
+import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote, Filter } from 'lucide-react';
+import { toDate, isTradeOpen, filterTradesGlobal, countGlobalFilter } from '../utils/dateUtils';
 import { parseCSVToTrades } from '../utils/csvParser';
 import { formatToLocalTime } from '../utils/tradeStats';
 
@@ -31,26 +31,31 @@ function cleanNumber(val){
   let s=String(val).trim(); if(!s) return 0;
   s=s.replace(/["'\s$€£₦]/g,'');
   if(s.startsWith('(')&&s.endsWith(')')) s='-'+s.slice(1,-1);
-  s=s.replace(/[\u2012\u2013\u2014\u2015\u2212]/g,'-');
+  // Turn phone-keyboard dashes into a plain "-" (same 5 characters as before,
+  // written as plain code numbers so there is nothing odd to mistype).
+  s=s.split('').map((ch)=>{
+    const c=ch.charCodeAt(0);
+    const isFancyDash=(c>=0x2012&&c<=0x2015)||c===0x2212;
+    return isFancyDash?'-':ch;
+  }).join('');
   if(s.includes(',')&&s.includes('.')){ if(s.lastIndexOf(',')>s.lastIndexOf('.')) s=s.replace(/\./g,'').replace(',','.'); else s=s.replace(/,/g,''); }
   else if(s.includes(',')){ const cparts=s.split(','); const ctail=cparts[cparts.length-1]; if(cparts.length===2&&/^\d{1,2}$/.test(ctail)) s=s.replace(',', '.'); else s=s.replace(/,/g,''); }
   const match=s.match(/-?\d+(\.\d+)?/);
   return match?parseFloat(match[0])||0:0;
 }
 
-export default function Journal({ trades=[], setTrades, playbooks=[], logActivity, settings }){
+export default function Journal({ trades=[], setTrades, playbooks=[], logActivity, settings, globalFilter=null, onOpenFilters=null }){
   const brokerUtcOffset = settings?.brokerUtcOffset ?? 2;
   const sym = ({ USD: '$', EUR: '€', GBP: '£', NGN: '₦' })[settings?.currency] || '$';
   const [isModalOpen,setIsModalOpen]=useState(false);
   const [isDetailOpen,setIsDetailOpen]=useState(false);
   const [editingTrade,setEditingTrade]=useState(null);
   const [search,setSearch]=useState('');
-  const [filterType,setFilterType]=useState('all');
-  const [filterSetup,setFilterSetup]=useState('all');
   const [sortOrder,setSortOrder]=useState('newest');
   const [filterReview,setFilterReview]=useState('all');
   const [filterStatus,setFilterStatus]=useState('all');
   const setupOptions=['Untagged',...playbooks.map(p=>p.title)];
+  const activeFilters=countGlobalFilter(globalFilter);
   const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
   const fileInputRef=useRef(null); const screenshotRef=useRef(null);
   useEffect(()=>{ if(!isModalOpen&&!isDetailOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen]);
@@ -102,17 +107,14 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const handleSaveDetail=(e)=>{ e.preventDefault(); if(!editingTrade) return; const dir=normalizeType(editingTrade.type); const net=cleanNumber(editingTrade.profit); const updated={ ...editingTrade, id:editingTrade.id, brokerId:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, ticket:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, openTime:editingTrade.openTime, openAt:editingTrade.openTime, closeAt:editingTrade.closeTime||editingTrade.closeAt||'', closeTime:editingTrade.closeTime||'', symbol:(editingTrade.symbol||'').toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(editingTrade.volume), size:cleanNumber(editingTrade.volume), entryPrice:cleanNumber(editingTrade.entryPrice), exitPrice:cleanNumber(editingTrade.exitPrice), stopLoss:cleanNumber(editingTrade.stopLoss), takeProfit:cleanNumber(editingTrade.takeProfit), commission:cleanNumber(editingTrade.commission), swap:cleanNumber(editingTrade.swap), profit:net, pnl:net, riskAmount:cleanNumber(editingTrade.riskAmount), setup:editingTrade.setup||'Untagged' }; setTrades(trades.map(t=>t.id===updated.id?updated:t)); setIsDetailOpen(false); setEditingTrade(null); };
   const handleDeleteFromDetail=(id)=>{ if(confirm('Delete this trade?')){ setTrades(trades.filter(t=>t.id!==id)); setIsDetailOpen(false); setEditingTrade(null);} };
 
-  const filteredTrades=trades.filter(t=>{
+  const filteredTrades=filterTradesGlobal(trades,globalFilter).filter(t=>{
     const q=search.toLowerCase().trim(); const ticket=String(getTicket(t)).toLowerCase();
     const matchesSearch=!q||String(t.symbol||'').toLowerCase().includes(q)||ticket.includes(q);
-    const p=getTradePnL(t); const dir=getDirection(t);
-    const matchesType=filterType==='all'||(filterType==='buy'&&dir==='buy')||(filterType==='sell'&&dir==='sell')||(filterType==='win'&&p>0)||(filterType==='loss'&&p<0);
-    const matchesSetup=filterSetup==='all'||(t.setup||'Untagged')===filterSetup;
     const unrev=t.reviewed===false;
     const matchesReview=filterReview==='all'||(filterReview==='unreviewed'&&unrev)||(filterReview==='reviewed'&&!unrev);
     const tradeOpen=isTradeOpen(t);
     const matchesStatus=filterStatus==='all'||(filterStatus==='open'&&tradeOpen)||(filterStatus==='closed'&&!tradeOpen);
-    return matchesSearch&&matchesType&&matchesSetup&&matchesReview&&matchesStatus;
+    return matchesSearch&&matchesReview&&matchesStatus;
   }).sort((a,b)=>{
     if(sortOrder==='pnlHigh') return getTradePnL(b)-getTradePnL(a);
     if(sortOrder==='pnlLow') return getTradePnL(a)-getTradePnL(b);
@@ -150,12 +152,8 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
         <select className="ts-input" value={sortOrder} onChange={e=>setSortOrder(e.target.value)} style={{width:'170px'}}>
           <option value="newest">Newest First</option><option value="oldest">Oldest First</option><option value="pnlHigh">Highest P&L</option><option value="pnlLow">Lowest P&L</option>
         </select>
-        <select className="ts-input" value={filterType} onChange={e=>setFilterType(e.target.value)} style={{width:'150px'}}>
-          <option value="all">All Outcomes</option><option value="buy">BUY Only</option><option value="sell">SELL Only</option><option value="win">Wins</option><option value="loss">Losses</option>
-        </select>
-        <select className="ts-input" value={filterSetup} onChange={e=>setFilterSetup(e.target.value)} style={{width:'170px'}}>
-          <option value="all">All Playbooks</option>{setupOptions.map(s=><option key={s} value={s}>{s}</option>)}
-        </select>
+        <button onClick={()=>{ if(onOpenFilters) onOpenFilters(); }} className="ts-btn" title="Global filters — one filter shared by Dashboard, Analytics & Journal" style={{display:'flex',alignItems:'center',gap:'6px'}}><Filter size={14} />Filters{activeFilters>0?` (${activeFilters})`:''}</button>
+        <span style={{alignSelf:'center',fontSize:'12px',color:'var(--text-muted)'}}>{filteredTrades.length} of {trades.length} trades</span>
         <select className="ts-input" value={filterReview} onChange={e=>setFilterReview(e.target.value)} style={{width:'150px'}}>
           <option value="all">All Reviews</option><option value="unreviewed">Needs Review</option><option value="reviewed">Reviewed</option>
         </select>

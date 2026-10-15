@@ -80,6 +80,71 @@ export function getTradeResultDate(trade) {
   );
 }
 
+/**
+ * Shape-guard for the persisted global filter. Anything that isn't an array
+ * of strings falls back to unconstrained, and direction/outcome picks are
+ * restricted to their known vocabularies — so a corrupt or tampered stored
+ * value can never crash a page, it just means "show everything".
+ */
+export function sanitizeGlobalFilter(v) {
+  const clean = (arr) => (Array.isArray(arr)
+    ? arr.filter((x) => typeof x === 'string').slice(0, 200)
+    : []);
+  const src = v && typeof v === 'object' ? v : {};
+  return {
+    symbols: clean(src.symbols),
+    setups: clean(src.setups),
+    directions: clean(src.directions).filter((d) => d === 'buy' || d === 'sell'),
+    outcomes: clean(src.outcomes).filter((o) => o === 'win' || o === 'loss'),
+  };
+}
+
+/**
+ * Cross-page global filter (Dashboard, Analytics, Journal): keeps a trade
+ * only when it matches EVERY constrained dimension. An empty dimension
+ * matches everything, so the default filter is a pure pass-through.
+ * Orthogonal to open/closed status — that stays the period filter's job.
+ * Pure: same input always gives same output, safe to call during render.
+ */
+export function filterTradesGlobal(trades = [], gf = null) {
+  if (!Array.isArray(trades)) return [];
+  const f = sanitizeGlobalFilter(gf);
+  const wantSymbols = f.symbols.length > 0;
+  const wantSetups = f.setups.length > 0;
+  const wantDirs = f.directions.length > 0;
+  const wantOutcomes = f.outcomes.length > 0;
+  if (!wantSymbols && !wantSetups && !wantDirs && !wantOutcomes) return trades;
+  const symSet = new Set(f.symbols);
+  const setupSet = new Set(f.setups);
+  const dirSet = new Set(f.directions);
+  const outSet = new Set(f.outcomes);
+  return trades.filter((t) => {
+    if (!t) return false;
+    if (wantSymbols && !symSet.has(String(t.symbol || ''))) return false;
+    if (wantSetups && !setupSet.has(String(t.setup || 'Untagged'))) return false;
+    if (wantDirs) {
+      const raw = String(t.direction || t.type || '').trim().toLowerCase();
+      const dir = raw.includes('sell') || raw === 'short' ? 'sell' : 'buy';
+      if (!dirSet.has(dir)) return false;
+    }
+    if (wantOutcomes) {
+      const pnl = Number(t.pnl ?? t.profit) || 0;
+      const out = pnl > 0 ? 'win' : pnl < 0 ? 'loss' : 'flat';
+      if (!outSet.has(out)) return false; // flat/breakeven matches neither
+    }
+    return true;
+  });
+}
+
+/**
+ * Active-selection count for the "Filters (N)" badges. Sanitized first so a
+ * corrupt stored value shows 0 instead of crashing.
+ */
+export function countGlobalFilter(gf) {
+  const f = sanitizeGlobalFilter(gf);
+  return f.symbols.length + f.setups.length + f.directions.length + f.outcomes.length;
+}
+
 // Accepts both short ids ('7d') and legacy labels ('7 days').
 const PERIOD_ALIASES = {
   'today': 'today',
@@ -146,7 +211,7 @@ export function sortTradesByDate(trades = [], newestFirst = true) {
   return [...trades].sort((a, b) => {
     const dateA = toDate(a.openAt || a.openTime || a.date) || new Date(0);
     const dateB = toDate(b.openAt || b.openTime || b.date) || new Date(0);
-    return newestFirst ? dateB - dateA : dateA - dateB;
+    return newestFirst ? dateB - dateA : db - da;
   });
 }
 

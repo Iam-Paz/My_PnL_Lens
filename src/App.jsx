@@ -10,10 +10,12 @@ import Playbooks from './component/playbooks.jsx';
 import Imports from './component/import.jsx';
 import Settings from './component/settings.jsx';
 import Journal from './component/journal.jsx';
+import FilterSheet from './component/FilterSheet.jsx';
 import Feedback from './component/feedback.jsx';
 import Landing from './component/Landing.jsx';
 import AccountsPage, { DEFAULT_ACCOUNT_SETTINGS, createAccount } from './component/accounts.jsx';
 import { STORAGE_KEYS, migrateLegacyKeys, clearAllAppStorage } from './utils/storageKeys.js';
+import { sanitizeGlobalFilter } from './utils/dateUtils';
 import {
   getSafeThemeMode, getSystemThemeMode, subscribeToSystemTheme,
   getTradesTotalPnl, resolveSkin, SkinContext,
@@ -285,6 +287,16 @@ export default function App() {
     try { localStorage.setItem(STORAGE_KEYS.sidebarCollapsed, String(navCollapsed)); } catch { /* storage full/blocked */ }
   }, [navCollapsed]);
 
+  // ---- Global cross-page filter (persisted, shape-guarded: a corrupt stored
+  // value resets to "show everything" instead of crashing a page) ----
+  const [globalFilter, setGlobalFilter] = useState(() =>
+    sanitizeGlobalFilter(readJSON(STORAGE_KEYS.globalFilter, null))
+  );
+  useEffect(() => {
+    try { localStorage.setItem(STORAGE_KEYS.globalFilter, JSON.stringify(globalFilter)); } catch { /* storage full/blocked */ }
+  }, [globalFilter]);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+
   // Mobile "More" bottom sheet visibility. Closed by selecting an entry,
   // tapping the backdrop, pressing Escape, or tapping the More tab again.
   const [moreSheetOpen, setMoreSheetOpen] = useState(false);
@@ -444,9 +456,9 @@ export default function App() {
               <button onClick={() => setShowStorageWarning(false)} className="ts-btn ts-btn-ghost" style={{ flexShrink: 0 }}>Dismiss</button>
             </div>
           )}
-          {activeTab === 'dashboard' && <Dashboard trades={trades} settings={settings} brandName={appName} />}
-          {activeTab === 'journal' && <Journal trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} logActivity={logActivity} settings={settings} />}
-          {activeTab === 'analytics' && <Analytics trades={trades} playbooks={playbooks} settings={settings} />}
+          {activeTab === 'dashboard' && <Dashboard trades={trades} settings={settings} brandName={appName} globalFilter={globalFilter} onOpenFilters={() => setFilterSheetOpen(true)} />}
+          {activeTab === 'journal' && <Journal trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} logActivity={logActivity} settings={settings} globalFilter={globalFilter} onOpenFilters={() => setFilterSheetOpen(true)} />}
+          {activeTab === 'analytics' && <Analytics trades={trades} playbooks={playbooks} settings={settings} globalFilter={globalFilter} onOpenFilters={() => setFilterSheetOpen(true)} />}
           {activeTab === 'playbooks' && <Playbooks trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} setPlaybooks={setPlaybooks} currency={CUR[settings.currency] || '$'} />}
           {activeTab === 'imports' && <Imports trades={trades} setTrades={updateActiveAccountTrades} logActivity={logActivity} activityLog={activityLog} clearActivityLog={clearActivityLog} settings={settings} />}
           {activeTab === 'feedback' && <Feedback />}
@@ -515,6 +527,17 @@ export default function App() {
               </button>
             </div>
           </div>
+        )}
+
+        {/* ============ GLOBAL FILTER SHEET (one filter shared by Dashboard,
+            Analytics & Journal; backdrop tap, Escape, or Done closes it). ============ */}
+        {filterSheetOpen && (
+          <FilterSheet
+            trades={trades}
+            value={globalFilter}
+            onChange={setGlobalFilter}
+            onClose={() => setFilterSheetOpen(false)}
+          />
         )}
       </div>
     </SkinContext.Provider>
