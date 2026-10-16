@@ -82,6 +82,27 @@ const JOURNAL_HEAD_CELLS = {
   pnl: <th className="num">Net P&L</th>,
   setup: <th>Setup</th>,
 };
+// Export value per column id. visibleIds drives which columns (and which
+// order) land in the CSV; 'notes' is always appended last since it has no
+// table column but must never be silently dropped from an export.
+const JOURNAL_EXPORT_COLUMNS = {
+  ticket: { header: 'Ticket', value: (t) => getTicket(t) },
+  status: { header: 'Status', value: (t) => (isTradeOpen(t) ? 'Open' : 'Closed') },
+  open: { header: 'Open Time', value: (t) => getOpenTime(t) },
+  close: { header: 'Close Time', value: (t) => getCloseTime(t) },
+  symbol: { header: 'Symbol', value: (t) => t.symbol },
+  dir: { header: 'Type', value: (t) => getDirection(t) },
+  vol: { header: 'Volume', value: (t) => getVolume(t) },
+  entry: { header: 'Entry', value: (t) => t.entryPrice },
+  sl: { header: 'SL', value: (t) => t.stopLoss ?? '' },
+  tp: { header: 'TP', value: (t) => t.takeProfit ?? '' },
+  exit: { header: 'Exit', value: (t) => t.exitPrice },
+  comm: { header: 'Commission', value: (t) => t.commission ?? 0 },
+  swap: { header: 'Swap', value: (t) => t.swap ?? 0 },
+  pnl: { header: 'Profit', value: (t) => getTradePnL(t) },
+  setup: { header: 'Setup', value: (t) => t.setup || 'Untagged' },
+  notes: { header: 'Notes', value: (t) => `"${String(t.notes||'').replace(/"/g,'""')}"` },
+};
 function readJournalJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -141,8 +162,9 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   };
   const handleExportCSV=()=>{
     if(trades.length===0) return alert('No trades to export.');
-    const headers=['Ticket','Open Time','Close Time','Symbol','Type','Volume','Entry','SL','TP','Exit','Commission','Swap','Profit','Setup','Notes'];
-    const rows=trades.map(t=>[getTicket(t),getOpenTime(t),getCloseTime(t),t.symbol,getDirection(t),getVolume(t),t.entryPrice,t.stopLoss??'',t.takeProfit??'',t.exitPrice,t.commission??0,t.swap??0,getTradePnL(t),t.setup||'Untagged',`"${String(t.notes||'').replace(/"/g,'""')}"`]);
+    const ids=[...visibleIds,'notes'];
+    const headers=ids.map((id)=>JOURNAL_EXPORT_COLUMNS[id].header);
+    const rows=trades.map((t)=>ids.map((id)=>JOURNAL_EXPORT_COLUMNS[id].value(t)));
     const csvContent=[headers.join(','),...rows.map(r=>r.join(','))].join('\n');
     const filename=`trades_export_${new Date().toISOString().slice(0,10)}.csv`;
     const blob=new Blob([csvContent],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob);
