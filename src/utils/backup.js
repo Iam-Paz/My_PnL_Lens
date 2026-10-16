@@ -6,7 +6,8 @@ export const BACKUP_APP = 'My_PnL_Lens';
 export const BACKUP_VERSION = 1;
 
 // [backup field, localStorage key] — legacy single-account keys ride along when present.
-const BACKUP_KEYS = [
+// Coverage guard: every STORAGE_KEYS entry must appear below (phase-6 tests enforce this).
+export const BACKUP_KEYS = [
   ['accounts', STORAGE_KEYS.accounts],
   ['activeAccount', STORAGE_KEYS.activeAccount],
   ['playbooks', STORAGE_KEYS.playbooks],
@@ -14,7 +15,11 @@ const BACKUP_KEYS = [
   ['defaultPage', STORAGE_KEYS.defaultPage],
   ['lastTab', STORAGE_KEYS.lastTab],
   ['dashboardPeriod', STORAGE_KEYS.dashboardPeriod],
+  ['dashboardCustomRange', STORAGE_KEYS.dashboardCustomRange],
   ['analyticsPeriod', STORAGE_KEYS.analyticsPeriod],
+  ['globalFilter', STORAGE_KEYS.globalFilter],
+  ['journalFilters', STORAGE_KEYS.journalFilters],
+  ['journalColumns', STORAGE_KEYS.journalColumns],
   ['displayName', STORAGE_KEYS.displayName],
   ['sidebarCollapsed', STORAGE_KEYS.sidebarCollapsed],
   ['myTickets', STORAGE_KEYS.myTickets],
