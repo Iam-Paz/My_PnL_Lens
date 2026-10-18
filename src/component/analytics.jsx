@@ -21,6 +21,7 @@ import EmotionAnalysis from './EmotionAnalysis';
 import RuleAdherence from './RuleAdherence';
 import PeriodComparison from './PeriodComparison';
 import KnowYourEdge from './KnowYourEdge';
+import ExcursionAnalysis from './ExcursionAnalysis.jsx';
 
 const PERIODS = [
   { id: 'today', label: 'Today' }, { id: '7d', label: '7 Days' },
@@ -215,6 +216,8 @@ export default function Analytics({ trades = [], playbooks = [], settings, globa
         <Stat label="Avg Win" value={fmt(overview.avgWin, sym, true)} color="var(--color-win)" />
         <Stat label="Avg Loss" value={fmt(-overview.avgLoss, sym, true)} color="var(--color-loss)" />
       </div>
+
+      <ExcursionAnalysis trades={scoped} />
 
       {/* ===== KNOW YOUR EDGE MATRIX ===== */}
       <KnowYourEdge
