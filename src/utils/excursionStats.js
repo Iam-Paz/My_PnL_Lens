@@ -71,3 +71,24 @@ export function calculateExcursionStats(trades = []) {
   })).sort((a, b) => b.count - a.count || a.outcome.localeCompare(b.outcome));
   return result;
 }
+// Group closed trades without changing the summary's eligibility rules.
+// Symbol case/outer whitespace are normalised, but broker suffixes stay separate.
+export function calculateExcursionGroups(trades = []) {
+  const setups = new Map();
+  const symbols = new Map();
+  const add = (groups, label, trade) => {
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(trade);
+  };
+  for (const trade of Array.isArray(trades) ? trades : []) {
+    if (!trade || typeof trade !== 'object' || Array.isArray(trade) || isTradeOpen(trade)) continue;
+    const setup = typeof trade.setup === 'string' ? trade.setup.trim() : '';
+    const symbol = typeof trade.symbol === 'string' ? trade.symbol.trim().toUpperCase() : '';
+    add(setups, setup || 'Untagged', trade);
+    add(symbols, symbol || 'UNKNOWN', trade);
+  }
+  const summarise = (groups) => [...groups].map(([label, list]) => ({
+    label, ...calculateExcursionStats(list),
+  })).sort((a, b) => b.closedCount - a.closedCount || a.label.localeCompare(b.label));
+  return { setups: summarise(setups), symbols: summarise(symbols) };
+}

@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { calculateExcursionStats } from '../utils/excursionStats.js';
+import { useMemo, useState } from 'react';
+import { calculateExcursionStats, calculateExcursionGroups } from '../utils/excursionStats.js';
 
 const valueR = (value) => value === null ? 'Not available' : `${value.toFixed(2)}R`;
 const percentage = (value) => value === null ? 'Not available' : `${value.toFixed(1)}%`;
@@ -15,7 +15,47 @@ function Metric({ label, value, note }) {
   );
 }
 
+function Breakdown({ rows, dimension }) {
+  return (
+    <div style={{ overflowX:'auto' }}>
+      <table className="ts-table">
+        <caption style={{ textAlign:'left', padding:'8px 0', color:'var(--text-secondary)' }}>
+          Execution by {dimension}. Sorted by closed-trade count, not a ranking of strategy quality.
+        </caption>
+        <thead>
+          <tr><th>{dimension === 'setup' ? 'Setup / Playbook' : 'Symbol'}</th><th>Coverage</th><th>Avg MFE</th><th>Avg realised R</th><th>Avg winner capture</th><th>Avg winner MAE</th><th>Winner to loss</th><th>Winner to BE</th><th>BE exit - net loss</th></tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 ? <tr><td colSpan={9}>No closed trades in this scope.</td></tr> : rows.map((row) => {
+            const rate = (count) => row.favourableCount > 0 ? count / row.favourableCount * 100 : null;
+            const detail = { fontSize:'11px', color:'var(--text-secondary)', marginTop:'4px' };
+            return (
+              <tr key={row.label}>
+                <td style={{ fontWeight:700 }}>{row.label}</td>
+                <td>
+                  <div>{row.validCount} usable / {row.closedCount} closed</div>
+                  <div style={detail}>{row.invalidCount} excluded</div>
+                  <div style={detail}>Missing MFE: {row.missingMfeCount}; MAE: {row.missingMaeCount}; positive risk: {row.missingRiskCount}</div>
+                </td>
+                <td className="number-font">{valueR(row.avgPairedMfeR)}<div style={detail}>{sample(row.pairedCount)}</div></td>
+                <td className="number-font">{valueR(row.avgPairedRealisedR)}<div style={detail}>{sample(row.pairedCount)} / matched</div></td>
+                <td className="number-font">{percentage(row.avgCapture)}<div style={detail}>{sample(row.captureCount)}</div></td>
+                <td className="number-font">{valueR(row.avgWinnerMaeR)}<div style={detail}>{sample(row.winnerMaeCount)}</div></td>
+                <td className="number-font">{percentage(rate(row.winnerTurnedLoserCount))}<div style={detail}>{row.winnerTurnedLoserCount} of {row.favourableCount}; {sample(row.favourableCount)}</div></td>
+                <td className="number-font">{percentage(rate(row.winnerToBeCount))}<div style={detail}>{row.winnerToBeCount} of {row.favourableCount}; {sample(row.favourableCount)}</div></td>
+                <td className="number-font">{percentage(rate(row.favourableBeNetLossCount))}<div style={detail}>{row.favourableBeNetLossCount} of {row.favourableCount}; {sample(row.favourableCount)}</div></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function ExcursionAnalysis({ trades = [] }) {
+  const [dimension, setDimension] = useState('setup');
+  const groups = useMemo(() => calculateExcursionGroups(trades), [trades]);
   const stats = useMemo(() => calculateExcursionStats(trades), [trades]);
   const rate = (count) => stats.favourableCount > 0 ? count / stats.favourableCount * 100 : null;
   return (
@@ -53,6 +93,18 @@ export default function ExcursionAnalysis({ trades = [] }) {
             <Metric label="Winner to Breakeven" value={percentage(rate(stats.winnerToBeCount))} note={`${stats.winnerToBeCount} of ${stats.favourableCount} / ${sample(stats.favourableCount)}`} />
             <Metric label="Breakeven exit - net loss" value={percentage(rate(stats.favourableBeNetLossCount))} note={`${stats.favourableBeNetLossCount} of ${stats.favourableCount} / Exit Type explicitly marked Breakeven`} />
           </div>
+          <h3 style={{ fontSize:'15px' }}>Where do execution patterns differ?</h3>
+          <div role="group" aria-label="Execution breakdown grouping" style={{ display:'flex', gap:'8px', flexWrap:'wrap', marginBottom:'12px' }}>
+            <button type="button" className="ts-btn" aria-pressed={dimension === 'setup'} onClick={() => setDimension('setup')}>By setup</button>
+            <button type="button" className="ts-btn" aria-pressed={dimension === 'symbol'} onClick={() => setDimension('symbol')}>By symbol</button>
+          </div>
+          <p style={{ fontSize:'12px', color:'var(--text-secondary)' }}>
+            Each row uses only that group's filtered closed trades. MFE and realised R share a matched sample. Capture uses eligible winners; MAE uses winners with recorded MAE. Reversal percentages use trades with positive recorded MFE. Missing counts apply to usable trades and may overlap. Each metric shows its own sample; fewer than five is flagged, not a statistical confidence test.
+          </p>
+          <Breakdown rows={dimension === 'setup' ? groups.setups : groups.symbols} dimension={dimension} />
+          <p style={{ fontSize:'12px', color:'var(--text-secondary)' }}>
+            Untagged setups and UNKNOWN symbols remain visible. Symbol case and outer whitespace are combined; broker suffixes are kept separate. These are descriptive comparisons, not automatic recommendations to change exits, stops or risk.
+          </p>
           <h3 style={{ fontSize:'15px' }}>Outcome breakdown</h3>
           <p style={{ fontSize:'12px', color:'var(--text-secondary)' }}>Percentages below use all {stats.validCount} usable closed trades, including those with basic outcomes because MFE is unknown.</p>
           <div style={{ overflowX:'auto' }}>
