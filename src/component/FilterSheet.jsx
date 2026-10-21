@@ -5,24 +5,28 @@ import { filterTradesGlobal, sanitizeGlobalFilter } from '../utils/dateUtils';
 const DIRECTIONS = [['buy', 'BUY'], ['sell', 'SELL']];
 const OUTCOMES = [['win', 'Wins'], ['loss', 'Losses']];
 
-// Option lists = values found in the current trades UNION already-picked
-// values, so a pick never strands itself when the trades change.
+// Options include current trades, current playbooks (for setups), and picked
+// values. Keep old picks visible so they can be cleared after a rename/delete.
 function unionOptions(fromTrades, picked) {
   return [...new Set([...(picked || []), ...fromTrades])].sort((a, b) =>
     String(a).localeCompare(String(b))
   );
 }
 
-export default function FilterSheet({ trades = [], value = null, onChange, onClose }) {
+export default function FilterSheet({ trades = [], playbooks = [], value = null, onChange, onClose }) {
   const gf = sanitizeGlobalFilter(value);
   const list = Array.isArray(trades) ? trades : [];
+  const books = Array.isArray(playbooks) ? playbooks : [];
 
   const symbolOptions = unionOptions(
     [...new Set(list.map((t) => String(t?.symbol || '').trim()).filter(Boolean))],
     gf.symbols
   );
   const setupOptions = unionOptions(
-    [...new Set(list.map((t) => String(t?.setup || 'Untagged')))],
+    [
+      ...list.map((t) => String(t?.setup || 'Untagged')),
+      ...books.map((p) => typeof p?.title === 'string' ? p.title.trim() : '').filter(Boolean),
+    ],
     gf.setups
   );
 
@@ -77,7 +81,7 @@ export default function FilterSheet({ trades = [], value = null, onChange, onClo
         <div style={{ marginTop: '16px' }}>
           <span style={labelStyle}>Setups</span>
           {setupOptions.length === 0 ? (
-            <p style={emptyStyle}>No setups in these trades yet.</p>
+            <p style={emptyStyle}>No playbooks or trade setups yet.</p>
           ) : (
             <div style={chipRowStyle}>
               {setupOptions.map((s) => (

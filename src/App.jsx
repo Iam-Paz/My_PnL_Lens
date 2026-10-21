@@ -534,6 +534,7 @@ export default function App() {
         {filterSheetOpen && (
           <FilterSheet
             trades={trades}
+            playbooks={playbooks}
             value={globalFilter}
             onChange={setGlobalFilter}
             onClose={() => setFilterSheetOpen(false)}
