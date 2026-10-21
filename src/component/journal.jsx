@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, Fragment } from 'react';
 import { Upload, Download, Pencil, Plus, Camera, Trash2, Save, StickyNote, Filter, ChevronUp, ChevronDown } from 'lucide-react';
 import { toDate, isTradeOpen, filterTradesGlobal, countGlobalFilter, sanitizeJournalFilters, sanitizeJournalColumns, moveColumnId } from '../utils/dateUtils';
 import { getExcursion, optionalNumber } from '../utils/excursion';
+import TradeContextFields from './TradeContextFields.jsx';
+import { normalizeTradeContext, getTradeContextDisplay, contextCSVValue } from '../utils/tradeContext.js';
 import { STORAGE_KEYS } from '../utils/storageKeys';
 import { parseCSVToTrades } from '../utils/csvParser';
 import { formatToLocalTime } from '../utils/tradeStats';
@@ -46,7 +48,7 @@ function cleanNumber(val){
   return match?parseFloat(match[0])||0:0;
 }
 
-// All 20 toggleable journal columns in default order. The Action column is
+// All 25 toggleable journal columns in default order. The Action column is
 // fixed (always visible, always last) so edit/delete are never lost.
 const JOURNAL_ALL_COLUMNS = [
   { id: 'ticket', label: 'Ticket' },
@@ -69,6 +71,11 @@ const JOURNAL_ALL_COLUMNS = [
   { id: 'maeMoney', label: 'MAE Money' },
   { id: 'outcome', label: 'Outcome' },
   { id: 'setup', label: 'Setup' },
+  { id: 'entryTimeframe', label: 'Entry Timeframe' },
+  { id: 'marketCondition', label: 'Market Condition' },
+  { id: 'entryExecution', label: 'Entry Execution' },
+  { id: 'slManagement', label: 'SL Management' },
+  { id: 'tpManagement', label: 'TP Management' },
 ];
 const JOURNAL_ALL_IDS = JOURNAL_ALL_COLUMNS.map((c) => c.id);
 const JOURNAL_HEAD_CELLS = {
@@ -92,6 +99,11 @@ const JOURNAL_HEAD_CELLS = {
   maeMoney: <th>MAE Money</th>,
   outcome: <th>Outcome</th>,
   setup: <th>Setup</th>,
+  entryTimeframe: <th>Entry Timeframe</th>,
+  marketCondition: <th>Market Condition</th>,
+  entryExecution: <th>Entry Execution</th>,
+  slManagement: <th>SL Management</th>,
+  tpManagement: <th>TP Management</th>,
 };
 // Export value per column id. visibleIds drives which columns (and which
 // order) land in the CSV; 'notes' is always appended last since it has no
@@ -117,6 +129,11 @@ const JOURNAL_EXPORT_COLUMNS = {
   maeMoney: { header: 'MAE Money', value: (t) => getExcursion(t).maeMoney ?? '' },
   outcome: { header: 'Outcome', value: (t) => getExcursion(t).outcome ?? '' },
   setup: { header: 'Setup', value: (t) => t.setup || 'Untagged' },
+  entryTimeframe: { header: 'Entry Timeframe', value: (t) => contextCSVValue(t, 'entryTimeframe') },
+  marketCondition: { header: 'Market Condition', value: (t) => contextCSVValue(t, 'marketCondition') },
+  entryExecution: { header: 'Entry Execution', value: (t) => contextCSVValue(t, 'entryExecution') },
+  slManagement: { header: 'SL Management', value: (t) => contextCSVValue(t, 'slManagement') },
+  tpManagement: { header: 'TP Management', value: (t) => contextCSVValue(t, 'tpManagement') },
   notes: { header: 'Notes', value: (t) => `"${String(t.notes||'').replace(/"/g,'""')}"` },
 };
 function readJournalJSON(key, fallback) {
@@ -172,7 +189,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const toggleColumn=(id)=>setColPrefs((prev)=>{ const on=prev.visible.includes(id); if(on&&prev.visible.length<=1) return prev; return { order:prev.order, visible:on?prev.visible.filter((v)=>v!==id):[...prev.visible,id] }; });
   const moveColumn=(id,dir)=>setColPrefs((prev)=>({ order:moveColumnId(prev.order,id,dir), visible:prev.visible }));
   const resetColumns=()=>setColPrefs({ visible:JOURNAL_ALL_IDS.slice(), order:JOURNAL_ALL_IDS.slice() });
-  const [formData,setFormData]=useState({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', mfeR:'', maeR:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
+  const [formData,setFormData]=useState({ ...normalizeTradeContext({}), symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', mfeR:'', maeR:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
   const fileInputRef=useRef(null); const screenshotRef=useRef(null);
   useEffect(()=>{ if(!isModalOpen&&!isDetailOpen&&!colPanelOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen,colPanelOpen]);
   function displayLocal(val){ return formatToLocalTime(val, brokerUtcOffset); }
@@ -209,10 +226,10 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   };
   const handleFormSubmit=(e)=>{
     e.preventDefault(); const id=String(Date.now()); const open=formData.openTime; const dir=normalizeType(formData.type);
-    const newTrade={ id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:formData.isOpen?'':(formData.closeDate||''), symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), exitType:formData.exitType||'', commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), riskAmount:cleanNumber(formData.riskAmount), mfeR:optionalNumber(formData.mfeR), maeR:optionalNumber(formData.maeR), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null, reviewed:false };
+    const newTrade={ ...normalizeTradeContext(formData), id, brokerId:id, ticket:id, openTime:open, openAt:open, closeAt:formData.isOpen?'':(formData.closeDate||''), symbol:formData.symbol.toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(formData.volume), size:cleanNumber(formData.volume), entryPrice:cleanNumber(formData.entryPrice), exitPrice:cleanNumber(formData.exitPrice), stopLoss:cleanNumber(formData.stopLoss), takeProfit:cleanNumber(formData.takeProfit), exitType:formData.exitType||'', commission:0, swap:0, profit:cleanNumber(formData.profit), pnl:cleanNumber(formData.profit), riskAmount:cleanNumber(formData.riskAmount), mfeR:optionalNumber(formData.mfeR), maeR:optionalNumber(formData.maeR), setup:formData.setup||'Untagged', notes:formData.notes||'', emotions:[], rulesChecked:[], screenshot:null, reviewed:false };
     const excursionError=getExcursion(newTrade).error; if(excursionError) return alert(excursionError);
     setTrades([newTrade,...trades]); setIsModalOpen(false);
-    setFormData({ symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', mfeR:'', maeR:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
+    setFormData({ ...normalizeTradeContext({}), symbol:'EURUSD', type:'buy', volume:'0.01', entryPrice:'', exitPrice:'', stopLoss:'', takeProfit:'', profit:'', riskAmount:'', mfeR:'', maeR:'', exitType:'', setup:'Untagged', notes:'', openTime:todayLocal(), closeDate:todayLocal(), isOpen:false });
   };
   // Retagging clears rule ticks — they belong to the previous playbook's rule set.
   const handleTagChange=(id,newSetup)=>setTrades(trades.map(t=>t.id===id?{...t,setup:newSetup,rulesChecked:[]}:t));
@@ -222,7 +239,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   const toggleEmotion=(emo)=>setEditingTrade(prev=>{ const cur=prev.emotions||[]; return {...prev, emotions: cur.includes(emo)?cur.filter(e=>e!==emo):[...cur,emo]}; });
   const toggleRule=(rule)=>setEditingTrade(prev=>{ const cur=Array.isArray(prev.rulesChecked)?prev.rulesChecked:[]; return {...prev, rulesChecked: cur.includes(rule)?cur.filter(r=>r!==rule):[...cur,rule]}; });
   const handleScreenshotUpload=(e)=>{ const file=e.target.files[0]; if(!file) return; if(file.size>1.5*1024*1024) return alert('Image too large. Keep screenshots under 1.5MB.'); const reader=new FileReader(); reader.onload=(ev)=>setEditingTrade(prev=>({...prev,screenshot:ev.target.result})); reader.readAsDataURL(file); };
-  const handleSaveDetail=(e)=>{ e.preventDefault(); if(!editingTrade) return; const dir=normalizeType(editingTrade.type); const net=cleanNumber(editingTrade.profit); const updated={ ...editingTrade, id:editingTrade.id, brokerId:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, ticket:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, openTime:editingTrade.openTime, openAt:editingTrade.openTime, closeAt:editingTrade.closeTime||editingTrade.closeAt||'', closeTime:editingTrade.closeTime||'', symbol:(editingTrade.symbol||'').toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(editingTrade.volume), size:cleanNumber(editingTrade.volume), entryPrice:cleanNumber(editingTrade.entryPrice), exitPrice:cleanNumber(editingTrade.exitPrice), stopLoss:cleanNumber(editingTrade.stopLoss), takeProfit:cleanNumber(editingTrade.takeProfit), commission:cleanNumber(editingTrade.commission), swap:cleanNumber(editingTrade.swap), profit:net, pnl:net, riskAmount:cleanNumber(editingTrade.riskAmount), mfeR:optionalNumber(editingTrade.mfeR), maeR:optionalNumber(editingTrade.maeR), setup:editingTrade.setup||'Untagged' }; const excursionError=getExcursion(updated).error; if(excursionError) return alert(excursionError); setTrades(trades.map(t=>t.id===updated.id?updated:t)); setIsDetailOpen(false); setEditingTrade(null); };
+  const handleSaveDetail=(e)=>{ e.preventDefault(); if(!editingTrade) return; const dir=normalizeType(editingTrade.type); const net=cleanNumber(editingTrade.profit); const updated={ ...editingTrade, ...normalizeTradeContext(editingTrade), id:editingTrade.id, brokerId:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, ticket:editingTrade.ticket||editingTrade.brokerId||editingTrade.id, openTime:editingTrade.openTime, openAt:editingTrade.openTime, closeAt:editingTrade.closeTime||editingTrade.closeAt||'', closeTime:editingTrade.closeTime||'', symbol:(editingTrade.symbol||'').toUpperCase(), type:dir, direction:dir==='sell'?'Short':'Long', volume:cleanNumber(editingTrade.volume), size:cleanNumber(editingTrade.volume), entryPrice:cleanNumber(editingTrade.entryPrice), exitPrice:cleanNumber(editingTrade.exitPrice), stopLoss:cleanNumber(editingTrade.stopLoss), takeProfit:cleanNumber(editingTrade.takeProfit), commission:cleanNumber(editingTrade.commission), swap:cleanNumber(editingTrade.swap), profit:net, pnl:net, riskAmount:cleanNumber(editingTrade.riskAmount), mfeR:optionalNumber(editingTrade.mfeR), maeR:optionalNumber(editingTrade.maeR), setup:editingTrade.setup||'Untagged' }; const excursionError=getExcursion(updated).error; if(excursionError) return alert(excursionError); setTrades(trades.map(t=>t.id===updated.id?updated:t)); setIsDetailOpen(false); setEditingTrade(null); };
   const handleDeleteFromDetail=(id)=>{ if(confirm('Delete this trade?')){ setTrades(trades.filter(t=>t.id!==id)); setIsDetailOpen(false); setEditingTrade(null);} };
 
   const filteredTrades=filterTradesGlobal(trades,globalFilter).filter(t=>{
@@ -292,7 +309,13 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 filteredTrades.map((trade,index)=>{
                   const p=getTradePnL(trade); const dir=getDirection(trade); const tradeOpen=isTradeOpen(trade); const sl=Number(trade.stopLoss)||0; const tp=Number(trade.takeProfit)||0; const comm=Number(trade.commission)||0; const swap=Number(trade.swap)||0;
                   const ex=getExcursion(trade);
+                  const context=getTradeContextDisplay(trade);
                   const cells={
+                    entryTimeframe:(<td>{context.entryTimeframe||'—'}</td>),
+                    marketCondition:(<td>{context.marketCondition||'—'}</td>),
+                    entryExecution:(<td>{context.entryExecution||'—'}</td>),
+                    slManagement:(<td>{context.slManagement||'—'}</td>),
+                    tpManagement:(<td>{context.tpManagement||'—'}</td>),
                     ticket:(<td className="number-font" style={{color:'var(--text-secondary)',fontSize:'12px'}}>{getTicket(trade)}</td>),
                     status:(<td><span style={{fontSize:'11px',fontWeight:700,padding:'3px 8px',borderRadius:'10px',backgroundColor:tradeOpen?'rgba(255,171,0,0.15)':'rgba(0,230,118,0.10)',color:tradeOpen?'#ffab00':'var(--color-win)'}}>{tradeOpen?'Open':'Closed'}</span></td>),
                     open:(<td className="number-font" style={{color:'var(--text-secondary)',whiteSpace:'nowrap'}}>{displayLocal(getOpenTime(trade))}</td>),
@@ -384,6 +407,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div><label style={labelStyle}>Exit Type</label><select className="ts-input" value={formData.exitType} onChange={e=>setFormData({...formData,exitType:e.target.value})}>{EXIT_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
                 <div style={{display:'flex',alignItems:'flex-end'}}><label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',cursor:'pointer',color:'var(--text-bright)'}}><input type="checkbox" checked={formData.isOpen} onChange={e=>setFormData({...formData,isOpen:e.target.checked})} style={{width:'16px',height:'16px',accentColor:'#2962ff',cursor:'pointer'}} />Still open (no exit yet)</label></div>
               </div>
+              <TradeContextFields trade={formData} onChange={(key,value)=>setFormData(prev=>({...prev,[key]:value}))} />
               <ExcursionFields trade={{...formData,closeAt:formData.isOpen?'':formData.closeDate,exitPrice:formData.isOpen?'':formData.exitPrice}} onChange={(key,value)=>setFormData(prev=>({...prev,[key]:value}))} sym={sym} />
               <div style={{marginTop:'14px'}}><label style={labelStyle}>Notes (optional)</label><textarea rows="2" className="ts-input" value={formData.notes} onChange={e=>setFormData({...formData,notes:e.target.value})} placeholder="Plan, mistakes, lessons..." style={{resize:'vertical'}} /></div>
               <div style={{display:'flex',justifyContent:'flex-end',gap:'10px',marginTop:'24px'}}>
@@ -426,6 +450,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                 <div><label style={labelStyle}>Playbook Setup</label><select className="ts-input" value={editingTrade.setup||'Untagged'} onChange={e=>{handleDetailChange('setup',e.target.value); setEditingTrade(prev=>({...prev,rulesChecked:[]}));}}>{getOptionsForTrade(editingTrade.setup).map(s=><option key={s} value={s}>{s}</option>)}</select></div>
                 <div><label style={labelStyle}>Exit Type</label><select className="ts-input" value={editingTrade.exitType||''} onChange={e=>handleDetailChange('exitType',e.target.value)}>{EXIT_TYPES.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select></div>
               </div>
+              <TradeContextFields trade={editingTrade} onChange={handleDetailChange} />
               <ExcursionFields trade={{...editingTrade,pnl:editingTrade.profit,closeAt:editingTrade.closeTime}} onChange={handleDetailChange} sym={sym} />
               <div style={{marginTop:'12px'}}>
                 <label style={{display:'flex',alignItems:'center',gap:'8px',fontSize:'13px',cursor:'pointer',color:'var(--text-bright)'}}>
