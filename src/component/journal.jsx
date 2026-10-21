@@ -48,7 +48,7 @@ function cleanNumber(val){
   return match?parseFloat(match[0])||0:0;
 }
 
-// All 25 toggleable journal columns in default order. The Action column is
+// All 29 toggleable journal columns in default order. The Action column is
 // fixed (always visible, always last) so edit/delete are never lost.
 const JOURNAL_ALL_COLUMNS = [
   { id: 'ticket', label: 'Ticket' },
@@ -75,6 +75,10 @@ const JOURNAL_ALL_COLUMNS = [
   { id: 'marketCondition', label: 'Market Condition' },
   { id: 'entryExecution', label: 'Entry Execution' },
   { id: 'slManagement', label: 'SL Management' },
+  { id: 'directionalBias', label: 'Directional Bias' },
+  { id: 'confluences', label: 'Confluences' },
+  { id: 'keyLevels', label: 'Key Levels' },
+  { id: 'newsContext', label: 'News Context' },
   { id: 'tpManagement', label: 'TP Management' },
 ];
 const JOURNAL_ALL_IDS = JOURNAL_ALL_COLUMNS.map((c) => c.id);
@@ -103,6 +107,10 @@ const JOURNAL_HEAD_CELLS = {
   marketCondition: <th>Market Condition</th>,
   entryExecution: <th>Entry Execution</th>,
   slManagement: <th>SL Management</th>,
+  directionalBias: <th>Directional Bias</th>,
+  confluences: <th>Confluences</th>,
+  keyLevels: <th>Key Levels</th>,
+  newsContext: <th>News Context</th>,
   tpManagement: <th>TP Management</th>,
 };
 // Export value per column id. visibleIds drives which columns (and which
@@ -133,6 +141,10 @@ const JOURNAL_EXPORT_COLUMNS = {
   marketCondition: { header: 'Market Condition', value: (t) => contextCSVValue(t, 'marketCondition') },
   entryExecution: { header: 'Entry Execution', value: (t) => contextCSVValue(t, 'entryExecution') },
   slManagement: { header: 'SL Management', value: (t) => contextCSVValue(t, 'slManagement') },
+  directionalBias: { header: 'Directional Bias', value: (t) => contextCSVValue(t, 'directionalBias') },
+  confluences: { header: 'Confluences', value: (t) => contextCSVValue(t, 'confluences') },
+  keyLevels: { header: 'Key Levels', value: (t) => contextCSVValue(t, 'keyLevels') },
+  newsContext: { header: 'News Context', value: (t) => contextCSVValue(t, 'newsContext') },
   tpManagement: { header: 'TP Management', value: (t) => contextCSVValue(t, 'tpManagement') },
   notes: { header: 'Notes', value: (t) => `"${String(t.notes||'').replace(/"/g,'""')}"` },
 };
@@ -315,6 +327,10 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
                     marketCondition:(<td>{context.marketCondition||'—'}</td>),
                     entryExecution:(<td>{context.entryExecution||'—'}</td>),
                     slManagement:(<td>{context.slManagement||'—'}</td>),
+                    directionalBias:(<td>{context.directionalBias||'—'}</td>),
+                    confluences:(<td>{context.confluences||'—'}</td>),
+                    keyLevels:(<td>{context.keyLevels||'—'}</td>),
+                    newsContext:(<td>{context.newsContext||'—'}</td>),
                     tpManagement:(<td>{context.tpManagement||'—'}</td>),
                     ticket:(<td className="number-font" style={{color:'var(--text-secondary)',fontSize:'12px'}}>{getTicket(trade)}</td>),
                     status:(<td><span style={{fontSize:'11px',fontWeight:700,padding:'3px 8px',borderRadius:'10px',backgroundColor:tradeOpen?'rgba(255,171,0,0.15)':'rgba(0,230,118,0.10)',color:tradeOpen?'#ffab00':'var(--color-win)'}}>{tradeOpen?'Open':'Closed'}</span></td>),
@@ -353,7 +369,6 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
         </div>
       </div>
 
-
       {colPanelOpen && (
         <div style={overlayStyle}>
           <div className="ts-card modal-mobile" style={{margin:'auto',width:'420px',maxWidth:'92%',maxHeight:'86vh',overflowY:'auto',backgroundColor:'var(--bg-surface)'}}>
@@ -386,6 +401,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
           </div>
         </div>
       )}
+
       {isModalOpen && (
         <div style={overlayStyle}>
           <div className="ts-card modal-mobile" style={{margin:'auto',width:'520px',maxWidth:'92%',backgroundColor:'var(--bg-surface)'}}>
