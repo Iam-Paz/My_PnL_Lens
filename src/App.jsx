@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, TrendingUp, Library, Package, Settings as SettingsIcon,
   Users, BookOpen, MessageCircle, PanelLeftOpen, PanelLeftClose,
-  Coffee, MoreHorizontal, X
+  Coffee, MoreHorizontal, X, ClipboardList
 } from 'lucide-react';
 import Dashboard from './component/dashboard.jsx';
 import Analytics from './component/analytics.jsx';
+import Reviews from './component/Reviews.jsx';
 import Playbooks from './component/playbooks.jsx';
 import Imports from './component/import.jsx';
 import Settings from './component/settings.jsx';
@@ -24,10 +25,10 @@ import { SHOW_LOVE_URL } from './config.js';
 
 // Tabs that live inside the mobile "More" sheet. When one of them is active,
 // the More tab in the bottom bar glows so the user knows where they are.
-const MORE_SHEET_TABS = ['playbooks', 'imports', 'accounts', 'feedback', 'settings'];
+const MORE_SHEET_TABS = ['reviews', 'playbooks', 'imports', 'accounts', 'feedback', 'settings'];
 
 // Every tab the app can boot into (last-tab memory + legacy default-page fallback).
-const KNOWN_TABS = ['dashboard', 'journal', 'analytics', 'playbooks', 'imports', 'accounts', 'feedback', 'settings'];
+const KNOWN_TABS = ['dashboard', 'journal', 'analytics', 'reviews', 'playbooks', 'imports', 'accounts', 'feedback', 'settings'];
 
 // Mobile bottom-bar tabs: 3 direct pages + the More sheet opener.
 const MOBILE_TABS = [
@@ -39,6 +40,7 @@ const MOBILE_TABS = [
 
 // Entries inside the mobile "More" bottom sheet.
 const MORE_SHEET_ENTRIES = [
+  { id: 'reviews', label: 'Reviews', icon: ClipboardList },
   { id: 'playbooks', label: 'Playbooks', icon: Library },
   { id: 'imports', label: 'Imports', icon: Package },
   { id: 'accounts', label: 'Manage Accounts', icon: Users },
@@ -50,7 +52,7 @@ const MORE_SHEET_ENTRIES = [
 const TAB_TITLES = {
   dashboard: 'Dashboard', journal: 'Journal', analytics: 'Analytics',
   playbooks: 'Playbooks', imports: 'Imports', accounts: 'Manage Accounts',
-  feedback: 'Support', settings: 'Settings',
+  feedback: 'Support', settings: 'Settings', reviews: 'Reviews',
 };
 
 // Currency code -> symbol (passed down to Playbooks; Dashboard/journal map their own).
@@ -362,6 +364,7 @@ export default function App() {
               <NavBtn icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleNav('dashboard')} collapsed />
               <NavBtn icon={BookOpen} label="Journal" active={activeTab === 'journal'} onClick={() => handleNav('journal')} collapsed />
               <NavBtn icon={TrendingUp} label="Analytics" active={activeTab === 'analytics'} onClick={() => handleNav('analytics')} collapsed />
+              <NavBtn icon={ClipboardList} label="Reviews" active={activeTab === 'reviews'} onClick={() => handleNav('reviews')} collapsed />
               <NavBtn icon={Library} label="Playbooks" active={activeTab === 'playbooks'} onClick={() => handleNav('playbooks')} collapsed />
               <NavBtn icon={Package} label="Imports" active={activeTab === 'imports'} onClick={() => handleNav('imports')} collapsed />
               <NavBtn icon={MessageCircle} label="Support" active={activeTab === 'feedback'} onClick={() => handleNav('feedback')} collapsed />
@@ -405,6 +408,7 @@ export default function App() {
                 <NavBtn icon={LayoutDashboard} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => handleNav('dashboard')} />
                 <NavBtn icon={BookOpen} label="Journal" active={activeTab === 'journal'} onClick={() => handleNav('journal')} />
                 <NavBtn icon={TrendingUp} label="Analytics" active={activeTab === 'analytics'} onClick={() => handleNav('analytics')} />
+                <NavBtn icon={ClipboardList} label="Reviews" active={activeTab === 'reviews'} onClick={() => handleNav('reviews')} />
                 <NavBtn icon={Library} label="Playbooks" active={activeTab === 'playbooks'} onClick={() => handleNav('playbooks')} />
                 <NavBtn icon={Package} label="Imports" active={activeTab === 'imports'} onClick={() => handleNav('imports')} />
                 <NavBtn icon={MessageCircle} label="Support" active={activeTab === 'feedback'} onClick={() => handleNav('feedback')} />
@@ -459,6 +463,7 @@ export default function App() {
           {activeTab === 'dashboard' && <Dashboard trades={trades} settings={settings} brandName={appName} globalFilter={globalFilter} onOpenFilters={() => setFilterSheetOpen(true)} />}
           {activeTab === 'journal' && <Journal trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} logActivity={logActivity} settings={settings} globalFilter={globalFilter} onOpenFilters={() => setFilterSheetOpen(true)} />}
           {activeTab === 'analytics' && <Analytics trades={trades} playbooks={playbooks} settings={settings} globalFilter={globalFilter} onOpenFilters={() => setFilterSheetOpen(true)} />}
+          {activeTab === 'reviews' && <Reviews key={activeAccount?.id} accountId={activeAccount?.id} accountName={accountName} trades={trades} settings={settings} />}
           {activeTab === 'playbooks' && <Playbooks trades={trades} setTrades={updateActiveAccountTrades} playbooks={playbooks} setPlaybooks={setPlaybooks} currency={CUR[settings.currency] || '$'} />}
           {activeTab === 'imports' && <Imports trades={trades} setTrades={updateActiveAccountTrades} logActivity={logActivity} activityLog={activityLog} clearActivityLog={clearActivityLog} settings={settings} />}
           {activeTab === 'feedback' && <Feedback />}

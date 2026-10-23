@@ -20,6 +20,7 @@ export const BACKUP_KEYS = [
   ['globalFilter', STORAGE_KEYS.globalFilter],
   ['journalFilters', STORAGE_KEYS.journalFilters],
   ['journalColumns', STORAGE_KEYS.journalColumns],
+  ['periodReviews', STORAGE_KEYS.periodReviews],
   ['displayName', STORAGE_KEYS.displayName],
   ['sidebarCollapsed', STORAGE_KEYS.sidebarCollapsed],
   ['myTickets', STORAGE_KEYS.myTickets],
@@ -33,6 +34,7 @@ function readKey(key) {
   try {
     const raw = localStorage.getItem(key);
     if (raw === null || raw === undefined) return undefined;
+
     try {
       return JSON.parse(raw);
     } catch {
@@ -50,10 +52,12 @@ function writeKey(key, value) {
 
 export function buildBackup() {
   const data = {};
+
   for (const [name, key] of BACKUP_KEYS) {
     const v = readKey(key);
     if (v !== undefined) data[name] = v;
   }
+
   return {
     app: BACKUP_APP,
     kind: 'full-backup',
@@ -66,8 +70,14 @@ export function buildBackup() {
 export function backupSummary(backup) {
   const d = (backup && backup.data) || {};
   const accounts = Array.isArray(d.accounts) ? d.accounts : [];
-  const trades = accounts.reduce((n, a) => n + (Array.isArray(a.trades) ? a.trades.length : 0), 0);
+
+  const trades = accounts.reduce(
+    (n, a) => n + (Array.isArray(a.trades) ? a.trades.length : 0),
+    0
+  );
+
   const playbooks = Array.isArray(d.playbooks) ? d.playbooks.length : 0;
+
   return {
     accounts: accounts.length,
     trades,
@@ -77,7 +87,11 @@ export function backupSummary(backup) {
 }
 
 export function downloadBackup(backup, filename) {
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: 'application/json' }
+  );
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -85,36 +99,65 @@ export function downloadBackup(backup, filename) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function backupFileName(prefix = 'mypnl-lens-backup') {
   const t = new Date();
   const p = (n) => String(n).padStart(2, '0');
+
   return `${prefix}-${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}.json`;
 }
 
 // Throws an Error with a human-readable message when the file isn't a usable backup.
 export function parseBackup(text) {
   let obj;
+
   try {
     obj = JSON.parse(String(text || ''));
   } catch {
     throw new Error('That file is not valid JSON.');
   }
-  if (!obj || typeof obj !== 'object' || obj.app !== BACKUP_APP || obj.kind !== 'full-backup' || !obj.data || typeof obj.data !== 'object') {
-    throw new Error('Not a My_PnL_Lens backup file (missing backup header).');
+
+  if (
+    !obj ||
+    typeof obj !== 'object' ||
+    obj.app !== BACKUP_APP ||
+    obj.kind !== 'full-backup' ||
+    !obj.data ||
+    typeof obj.data !== 'object'
+  ) {
+    throw new Error(
+      'Not a My_PnL_Lens backup file (missing backup header).'
+    );
   }
-  if (obj.data.accounts !== undefined && !Array.isArray(obj.data.accounts)) {
+
+  if (
+    obj.data.accounts !== undefined &&
+    !Array.isArray(obj.data.accounts)
+  ) {
     throw new Error('Backup is corrupt: the accounts list is damaged.');
   }
+
+  if (
+    obj.data.periodReviews !== undefined &&
+    !Array.isArray(obj.data.periodReviews)
+  ) {
+    throw new Error(
+      'Backup is corrupt: the period reviews list is damaged.'
+    );
+  }
+
   return obj;
 }
 
 export function applyBackup(backup) {
   const d = (backup && backup.data) || {};
+
   for (const [name, key] of BACKUP_KEYS) {
     if (d[name] === undefined) continue;
+
     try {
       writeKey(key, d[name]);
     } catch (err) {
