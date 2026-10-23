@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   globalFilter: 'mypnllens_global_filter',
   journalFilters: 'mypnllens_journal_filters',
   journalColumns: 'mypnllens_journal_columns',
+  periodReviews: 'mypnllens_period_reviews',
   displayName: 'mypnllens_display_name',
   sidebarCollapsed: 'mypnllens_sidebar_collapsed',
   myTickets: 'mypnllens_my_tickets',
