@@ -3,6 +3,12 @@ import { optionalNumber } from './excursion.js';
 import {
   ENTRY_EXECUTIONS,
   MARKET_CONDITIONS,
+  DIRECTIONAL_BIASES,
+  CONFLUENCES,
+  KEY_LEVELS,
+  NEWS_CONTEXT,
+  SL_MANAGEMENT,
+  TP_MANAGEMENT,
   normalizeTradeContext,
 } from './tradeContext.js';
 import {
@@ -20,10 +26,44 @@ export const CONTEXT_ANALYSIS_GROUPS = [
   ['marketCondition', 'Market condition'],
   ['mistakes', 'Mistakes'],
   ['emotions', 'Emotions'],
+  ['entryTimeframe', 'Entry timeframe'],
+  ['directionalBias', 'Directional bias'],
+  ['confluences', 'Confluences'],
+  ['keyLevels', 'Key levels'],
+  ['newsContext', 'News context'],
+  ['slManagement', 'SL management'],
+  ['tpManagement', 'TP management'],
 ];
 
 // A descriptive caution threshold, not a statistical significance test.
 export const SMALL_SAMPLE_THRESHOLD = 10;
+
+const OPTIONS = {
+  entryExecution: ENTRY_EXECUTIONS,
+  marketCondition: MARKET_CONDITIONS,
+  directionalBias: DIRECTIONAL_BIASES,
+  confluences: CONFLUENCES,
+  keyLevels: KEY_LEVELS,
+  newsContext: NEWS_CONTEXT,
+  slManagement: SL_MANAGEMENT,
+  tpManagement: TP_MANAGEMENT,
+  mistakes: TRADE_MISTAKES,
+  emotions: EMOTIONS.map((label) => [label, label]),
+};
+
+const MULTI_SELECT_GROUPS = new Set([
+  'mistakes',
+  'emotions',
+  'confluences',
+  'keyLevels',
+  'newsContext',
+  'slManagement',
+  'tpManagement',
+]);
+
+function timeframeLabel(trade) {
+  return normalizeTradeContext(trade).entryTimeframe.toUpperCase();
+}
 
 function selections(trade, group) {
   if (group === 'mistakes') {
@@ -38,16 +78,32 @@ function selections(trade, group) {
     return EMOTIONS.filter((emotion) => selected.has(emotion));
   }
 
-  const context = normalizeTradeContext(trade);
-  return context[group] ? [context[group]] : [];
+  if (group === 'entryTimeframe') {
+    const label = timeframeLabel(trade);
+    return label ? ['timeframe:' + label] : [];
+  }
+
+  const value = normalizeTradeContext(trade)[group];
+
+  return Array.isArray(value)
+    ? value
+    : value
+      ? [value]
+      : [];
 }
 
-function optionsFor(group) {
-  if (group === 'entryExecution') return ENTRY_EXECUTIONS;
-  if (group === 'marketCondition') return MARKET_CONDITIONS;
-  if (group === 'mistakes') return TRADE_MISTAKES;
+function optionsFor(group, trades) {
+  if (group !== 'entryTimeframe') return OPTIONS[group];
 
-  return EMOTIONS.map((label) => [label, label]);
+  // Prefix dynamic IDs so even a literal "__unrecorded" cannot collide
+  // with the missing-data row. Do not infer equivalent timeframe notation.
+  const labels = new Set(
+    trades.map(timeframeLabel).filter(Boolean)
+  );
+
+  return [...labels]
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }))
+    .map((label) => ['timeframe:' + label, label]);
 }
 
 function emptyRow(id, label, unrecorded = false) {
@@ -76,8 +132,15 @@ export function buildContextAnalysis(
     return null;
   }
 
+  const closed = (Array.isArray(trades) ? trades : []).filter(
+    (trade) =>
+      trade &&
+      typeof trade === 'object' &&
+      !isTradeOpen(trade)
+  );
+
   const rows = new Map(
-    optionsFor(group).map(([id, label]) => [
+    optionsFor(group, closed).map(([id, label]) => [
       id,
       emptyRow(id, label),
     ])
@@ -87,15 +150,7 @@ export function buildContextAnalysis(
   let total = 0;
   let recorded = 0;
 
-  for (const trade of Array.isArray(trades) ? trades : []) {
-    if (
-      !trade ||
-      typeof trade !== 'object' ||
-      isTradeOpen(trade)
-    ) {
-      continue;
-    }
-
+  for (const trade of closed) {
     total++;
 
     const selected = selections(trade, group);
@@ -163,7 +218,7 @@ export function buildContextAnalysis(
     recorded,
     unrecorded: total - recorded,
     coverage: total ? recorded / total * 100 : null,
-    overlapping: group === 'mistakes' || group === 'emotions',
+    overlapping: MULTI_SELECT_GROUPS.has(group),
     rows: [
       ...[...rows.values()]
         .filter((row) => row.tradeCount > 0)

@@ -91,6 +91,46 @@ export default function ContextAnalysis({
         </p>
       )}
 
+      {group === 'entryTimeframe' && (
+        <p style={hintStyle}>
+          This is the recorded entry timeframe, not the playbook default.
+          Labels are trimmed and uppercased for comparison: m5 and M5 share
+          a row, but 5m and M5 remain separate. Saved trade values are not changed.
+        </p>
+      )}
+
+      {group === 'directionalBias' && (
+        <p style={hintStyle}>
+          Bias is the recorded market view at entry, not the buy/sell direction.
+          A bullish bias does not necessarily mean a buy trade.
+        </p>
+      )}
+
+      {(group === 'confluences' || group === 'keyLevels') && (
+        <p style={hintStyle}>
+          Tags record identified reasons or reference zones, not validated
+          signals. A row is not a test of a tag combination. Prices, timeframe
+          and other details remain in Notes; they are not inferred here.
+        </p>
+      )}
+
+      {group === 'newsContext' && (
+        <p style={hintStyle}>
+          News context is your recorded assessment, not a verified calendar.
+          “No major news expected” is explicit; unrecorded does not mean no news.
+          Before/After tags may refer to different releases—check Notes.
+        </p>
+      )}
+
+      {(group === 'slManagement' || group === 'tpManagement') && (
+        <p style={hintStyle}>
+          “Left unchanged” is an explicit selection, not missing data.
+          These tags record actions, not their order or whether they followed
+          the plan. Actions happen during the trade, so results do not establish
+          that an action caused better performance.
+        </p>
+      )}
+
       {summary.total === 0 ? (
         <p>No closed trades in this selection.</p>
       ) : (
