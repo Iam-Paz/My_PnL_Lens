@@ -7,7 +7,7 @@ import TradeMistakeFields from './TradeMistakeFields.jsx';
 import { normalizeTradeMistakes, getTradeMistakesDisplay, tradeMistakesCSVValue } from '../utils/tradeMistakes.js';
 import { normalizeTradeContext, getTradeContextDisplay, contextCSVValue } from '../utils/tradeContext.js';
 import { STORAGE_KEYS } from '../utils/storageKeys';
-import { parseCSVToTrades } from '../utils/csvParser';
+import useMT5QuickImport from '../utils/useMT5QuickImport';
 import { formatToLocalTime } from '../utils/tradeStats';
 
 const EMOTIONS = ['Calm','Confident','Disciplined','Patient','FOMO','Revenge Trading','Anxious','Overconfident','Fearful','Greedy','Bored'];
@@ -211,25 +211,12 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
   useEffect(()=>{ if(!isModalOpen&&!isDetailOpen&&!colPanelOpen) return; document.body.style.overflow='hidden'; return ()=>{ document.body.style.overflow=''; }; },[isModalOpen,isDetailOpen,colPanelOpen]);
   function displayLocal(val){ return formatToLocalTime(val, brokerUtcOffset); }
   const handleImportClick=()=>fileInputRef.current.click();
-  const handleFileUpload=(event)=>{
-    const file=event.target.files[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=(e)=>parseCSV(e.target.result,file.name);
-    reader.readAsText(file); event.target.value='';
-  };
-  // Quick Import with the same duplicate protection as the Imports page:
-  // rows whose ticket already exists are skipped and reported, never doubled.
-  const parseCSV=(csvText,filename)=>{
-    try{
-      const parsed=parseCSVToTrades(csvText);
-      const existingTickets=new Set(trades.map(t=>String(t.brokerId||t.ticket||t.id||'')).filter(Boolean));
-      const fresh=[]; let dupes=0;
-      for(const t of parsed){ const ticket=String(t.brokerId||t.ticket||''); if(ticket&&existingTickets.has(ticket)){ dupes++; continue; } if(ticket) existingTickets.add(ticket); fresh.push(t); }
-      if(fresh.length>0){ setTrades(prev=>[...fresh,...prev]); if(logActivity) logActivity('import',filename,fresh.length); alert(`Successfully imported ${fresh.length} trades!${dupes>0?` (${dupes} duplicates skipped.)`:''}`); }
-      else if(dupes>0) alert(`No new trades — all ${dupes} rows were duplicates of trades you already have.`);
-      else alert('Could not parse trades. Please check the CSV format.');
-    }catch(err){ console.error(err); alert('Error parsing CSV file.'); }
-  };
+  const handleFileUpload = useMT5QuickImport({
+    trades,
+    setTrades,
+    logActivity,
+    currency: settings?.currency || 'USD',
+  });
   const handleExportCSV=()=>{
     if(trades.length===0) return alert('No trades to export.');
     const ids=[...visibleIds,'notes'];
@@ -286,7 +273,7 @@ export default function Journal({ trades=[], setTrades, playbooks=[], logActivit
 
   return (
     <div>
-      <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.txt" style={{display:'none'}} />
+      <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.txt,.tsv,text/csv,text/plain" style={{display:'none'}} />
       <div className="header-bar" style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'24px',flexWrap:'wrap',gap:'16px'}}>
         <div>
           <h1 style={{fontSize:'22px',fontWeight:700,color:'var(--text-bright)',margin:0}}>Trading Journal</h1>

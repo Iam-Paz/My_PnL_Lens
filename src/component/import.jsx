@@ -1,8 +1,21 @@
-import React, { useState } from 'react';
-import { Package, FileText, TriangleAlert, ScrollText, Download, Upload } from 'lucide-react';
-import { parseCSVToTrades } from '../utils/csvParser';
-import { toDate } from '../utils/dateUtils';
+import { useRef, useState } from 'react';
+import {
+  Package,
+  FileText,
+  TriangleAlert,
+  ScrollText,
+} from 'lucide-react';
+import { parseCSVReport } from '../utils/csvParser';
+import {
+  planMT5Import,
+  mergeMT5Import,
+} from '../utils/mt5Import';
 import { formatToLocalTime } from '../utils/tradeStats';
+
+const cellStyle = {
+  padding: '10px 14px',
+  borderBottom: '1px solid var(--border-color)',
+};
 
 export default function Imports({
   trades = [],
@@ -12,314 +25,533 @@ export default function Imports({
   clearActivityLog,
   settings,
 }) {
-  const [parsedPreview, setParsedPreview] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [fileName, setFileName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
-  const brokerUtcOffset = settings?.brokerUtcOffset ?? 2;
-  const sym = ({ USD: '$', EUR: '€', GBP: '£', NGN: '₦' })[settings?.currency] || '$';
+  const [notice, setNotice] = useState('');
+  const [reading, setReading] = useState(false);
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files?.[0];
+  const readVersion = useRef(0);
+  const confirmed = useRef(false);
+
+  const brokerUtcOffset = settings?.brokerUtcOffset ?? 2;
+  const currency = settings?.currency || 'USD';
+  const money = (value) => `${currency} ${value.toFixed(2)}`;
+
+  const plan = preview
+    ? planMT5Import(preview.trades, trades)
+    : null;
+
+  const blocked = !!(
+    preview?.invalid.length ||
+    plan?.conflicts.length
+  );
+
+  const net = plan?.fresh.reduce(
+    (sum, trade) => sum + trade.pnl,
+    0
+  ) ?? 0;
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
     if (!file) return;
+
+    const version = ++readVersion.current;
+    confirmed.current = false;
 
     setFileName(file.name);
     setErrorMsg('');
-    setParsedPreview(null);
+    setNotice('');
+    setPreview(null);
+    setReading(true);
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+
+    reader.onload = () => {
+      if (version !== readVersion.current) return;
+
       try {
-        const text = String(event.target.result || '');
-        const parsed = parseCSVToTrades(text);
-
-        if (!parsed.length) {
-          setErrorMsg('No trade rows found. Check that this is an MT5 deal/history export.');
-          return;
-        }
-
-        const existingTickets = new Set(
-          trades.map((t) => String(t.brokerId || t.ticket || t.id || '')).filter(Boolean)
+        const report = parseCSVReport(
+          String(reader.result ?? '')
         );
 
-        const valid = [];
-        const duplicates = [];
-        const invalid = [];
-
-        parsed.forEach((trade, index) => {
-          const open = toDate(trade.openAt || trade.openTime || trade.date);
-          const pnl = Number(trade.pnl ?? trade.profit);
-          const hasSymbol = trade.symbol && String(trade.symbol).toUpperCase() !== 'UNKNOWN';
-          const ticket = String(trade.brokerId || trade.ticket || '');
-
-          const ok = open && Number.isFinite(pnl) && (hasSymbol || ticket.length > 0);
-
-          if (!ok) {
-            invalid.push({
-              rowNumber: index + 1,
-              reason: !open
-                ? 'Missing/invalid open time'
-                : !Number.isFinite(pnl)
-                ? 'Missing/invalid profit'
-                : 'Missing symbol/ticket',
-              trade,
-            });
-            return;
-          }
-
-          if (ticket && existingTickets.has(ticket)) {
-            duplicates.push(trade);
-          } else {
-            valid.push(trade);
-            if (ticket) existingTickets.add(ticket);
-          }
-        });
-
-        setParsedPreview({
-          totalRows: parsed.length,
-          valid,
-          duplicates,
-          invalid,
-        });
-      } catch (err) {
-        console.error(err);
-        setErrorMsg('Failed to parse CSV. Please verify the MT5 export format.');
+        if (!report.totalRows) {
+          setErrorMsg(
+            'No position rows found. Include the supported Positions header and closed-position rows.'
+          );
+        } else {
+          setPreview(report);
+        }
+      } catch (error) {
+        setErrorMsg(
+          error.message || 'Unable to parse this Positions file.'
+        );
       }
+
+      setReading(false);
+    };
+
+    reader.onerror = () => {
+      if (version !== readVersion.current) return;
+
+      setReading(false);
+      setErrorMsg(
+        'The file could not be read. Please select it again.'
+      );
     };
 
     reader.readAsText(file);
-    e.target.value = ''; // allow picking the same file again
-  };
-
-  const confirmImport = () => {
-    if (!parsedPreview?.valid?.length) return;
-
-    if (typeof setTrades === 'function') {
-      setTrades((prev) => [...parsedPreview.valid, ...(prev || [])]);
-    }
-
-    if (typeof logActivity === 'function') {
-      logActivity('import', fileName, parsedPreview.valid.length);
-    }
-
-    alert(`Successfully imported ${parsedPreview.valid.length} trades!`);
-    setParsedPreview(null);
-    setFileName('');
   };
 
   const cancelImport = () => {
-    setParsedPreview(null);
+    readVersion.current++;
+    setPreview(null);
     setFileName('');
     setErrorMsg('');
+    setReading(false);
+  };
+
+  const confirmImport = () => {
+    if (
+      !preview ||
+      preview.invalid.length ||
+      confirmed.current
+    ) {
+      return;
+    }
+
+    const currentPlan = planMT5Import(preview.trades, trades);
+
+    if (
+      currentPlan.conflicts.length ||
+      !currentPlan.fresh.length
+    ) {
+      return;
+    }
+
+    if (typeof setTrades !== 'function') {
+      setErrorMsg(
+        'Import is unavailable: account trade storage is not connected.'
+      );
+      return;
+    }
+
+    confirmed.current = true;
+
+    // Pure functional update: duplicate protection also runs on latest state.
+    setTrades((previous) => mergeMT5Import(
+      previous || [],
+      preview.trades
+    ));
+
+    if (typeof logActivity === 'function') {
+      logActivity('import', fileName, currentPlan.fresh.length);
+    }
+
+    setNotice(
+      `Submitted ${currentPlan.fresh.length} new positions for import; ${currentPlan.duplicates.length} duplicate rows skipped. Existing trades and annotations were not overwritten.`
+    );
+
+    setPreview(null);
+    setFileName('');
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '24px',
+      }}
+    >
       <div>
-        <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}><Package size={24} /> CSV Import & History</h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0 0' }}>
-          Import MT5 history with preview, validation, and duplicate protection.
+        <h1 style={{ fontSize: '24px', margin: 0 }}>
+          <Package size={24} /> MT5 Positions Import
+        </h1>
+
+        <p
+          style={{
+            color: 'var(--text-secondary)',
+            fontSize: '13px',
+          }}
+        >
+          Import closed Positions only. Select the correct account
+          first; the copied table does not identify its account
+          or currency.
         </p>
       </div>
 
-      {!parsedPreview && (
+      {notice && (
+        <div className="ts-card" role="status">
+          {notice}
+        </div>
+      )}
+
+      {errorMsg && (
         <div
           className="ts-card"
-          style={{ padding: '32px', textAlign: 'center', border: '2px dashed var(--border-color)' }}
+          role="alert"
+          style={{ color: 'var(--color-loss)' }}
         >
-          <div style={{ marginBottom: '12px' }}><FileText size={40} style={{ color: 'var(--text-muted)' }} /></div>
-          <h3 style={{ margin: '0 0 8px 0', fontSize: '16px' }}>Select MT5 CSV / TSV File</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '12px', marginBottom: '20px' }}>
-            Supports comma, tab, or semicolon exports.
+          <TriangleAlert size={16} /> {errorMsg}
+        </div>
+      )}
+
+      {!preview && (
+        <div
+          className="ts-card"
+          style={{
+            padding: '32px',
+            textAlign: 'center',
+            border: '2px dashed var(--border-color)',
+          }}
+        >
+          <FileText size={36} />
+
+          <h3>Select MT5 Positions CSV / TSV / TXT</h3>
+
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '13px',
+            }}
+          >
+            Requires the 13-column header: Time, Position, Symbol,
+            Type, Volume, Price, S / L, T / P, Time, Price,
+            Commission, Swap, Profit.
+          </p>
+
+          <p
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '12px',
+            }}
+          >
+            Tab, comma and semicolon separators are supported for
+            this layout. HTML reports, journal exports, Orders and
+            Deals are not supported import layouts.
           </p>
 
           <input
+            id="mt5-position-file"
             type="file"
             accept=".csv,.txt,.tsv,text/csv,text/plain"
             onChange={handleFileUpload}
-            id="csv-file-input"
-            style={{ display: 'none' }}
+            disabled={reading}
           />
-          <label
-            htmlFor="csv-file-input"
-            className="ts-btn ts-btn-primary"
-            style={{ cursor: 'pointer', display: 'inline-block' }}
-          >
-            Browse Files
-          </label>
 
-          {errorMsg && (
-            <div style={{ marginTop: '16px', color: 'var(--color-loss)', fontSize: '13px', fontWeight: 600 }}>
-              <TriangleAlert size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{errorMsg}
-            </div>
+          {reading && (
+            <p role="status">Reading {fileName}…</p>
           )}
         </div>
       )}
 
-      {parsedPreview && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div
-            className="ts-card"
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '12px',
-            }}
-          >
-            <div>
-              <h3 style={{ margin: 0, fontSize: '16px' }}>Import Preview — {fileName}</h3>
-              <div style={{ display: 'flex', gap: '16px', marginTop: '6px', fontSize: '12px', flexWrap: 'wrap' }}>
-                <span style={{ color: 'var(--color-win)', fontWeight: 700 }}>
-                  ✓ {parsedPreview.valid.length} Ready to Import
-                </span>
-                <span style={{ color: 'var(--color-amber-text)', fontWeight: 600 }}>
-                  <TriangleAlert size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />{parsedPreview.duplicates.length} Duplicates Skipped
-                </span>
-                <span style={{ color: 'var(--color-rose)', fontWeight: 600 }}>
-                  ✕ {parsedPreview.invalid.length} Invalid Rows
-                </span>
-              </div>
+      {preview && (
+        <>
+          <div className="ts-card">
+            <h3 style={{ marginTop: 0 }}>
+              Preview — {fileName}
+            </h3>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '16px',
+                flexWrap: 'wrap',
+                fontSize: '13px',
+              }}
+            >
+              <span>
+                {preview.totalRows} data records examined
+              </span>
+              <span>{plan.fresh.length} new positions</span>
+              <span>
+                {plan.duplicates.length} duplicate rows skipped
+              </span>
+              <span>
+                {preview.skipped.length} non-position/totals
+                rows skipped
+              </span>
+              <span>
+                {preview.invalid.length} invalid rows
+              </span>
+              <span>
+                {plan.conflicts.length} ticket conflicts
+              </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={cancelImport} className="ts-btn ts-btn-ghost">
-                Cancel
-              </button>
-              <button
-                onClick={confirmImport}
-                className="ts-btn ts-btn-success"
-                disabled={parsedPreview.valid.length === 0}
+            <p>
+              <strong>
+                New-position net P&amp;L: {money(net)}
+              </strong>
+            </p>
+
+            <p
+              style={{
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              Net = gross profit + signed commission + swap.
+              Currency is the selected account setting, not detected
+              from the file. Existing positions are skipped, never
+              updated or merged.
+            </p>
+
+            {preview.stoppedAt && (
+              <p>
+                Stopped before later section: {preview.stoppedAt}
+              </p>
+            )}
+
+            {blocked && (
+              <p
+                role="alert"
+                style={{ color: 'var(--color-loss)' }}
               >
-                Confirm Import ({parsedPreview.valid.length})
+                Import blocked. Correct the invalid rows or
+                conflicting tickets and select the file again.
+                No partial import will be performed.
+              </p>
+            )}
+
+            {!blocked && !plan.fresh.length && (
+              <p>No new positions to import.</p>
+            )}
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                className="ts-btn ts-btn-ghost"
+                onClick={cancelImport}
+              >
+                Cancel / choose another file
+              </button>
+
+              <button
+                className="ts-btn ts-btn-success"
+                onClick={confirmImport}
+                disabled={blocked || !plan.fresh.length}
+              >
+                Confirm Import ({plan.fresh.length})
               </button>
             </div>
           </div>
 
-          {parsedPreview.invalid.length > 0 && (
-            <div className="ts-card" style={{ borderColor: 'rgba(248,113,113,0.4)' }}>
-              <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: 'var(--color-rose)' }}>Invalid row details</h4>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                {parsedPreview.invalid.slice(0, 5).map((item) => (
-                  <div key={item.rowNumber}>
-                    Row {item.rowNumber}: {item.reason}
-                    {item.trade?.symbol ? ` (${item.trade.symbol})` : ''}
-                  </div>
-                ))}
-                {parsedPreview.invalid.length > 5 && (
-                  <div>…and {parsedPreview.invalid.length - 5} more</div>
-                )}
-              </div>
-            </div>
-          )}
+          {!!preview.invalid.length && (
+            <div className="ts-card">
+              <h4>Invalid record details</h4>
+              <p style={{ fontSize: '12px' }}>
+                Record numbers count non-empty CSV records,
+                including the header and any preamble.
+              </p>
 
-          {parsedPreview.valid.length > 0 && (
-            <div className="ts-card" style={{ overflowX: 'auto', padding: 0 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
-                <thead>
-                  <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(255,255,255,0.02)' }}>
-                    <th style={{ padding: '10px 14px' }}>Ticket</th>
-                    <th style={{ padding: '10px 14px' }}>Open</th>
-                    <th style={{ padding: '10px 14px' }}>Symbol</th>
-                    <th style={{ padding: '10px 14px' }}>Dir</th>
-                    <th style={{ padding: '10px 14px' }}>Vol</th>
-                    <th style={{ padding: '10px 14px' }}>Entry</th>
-                    <th style={{ padding: '10px 14px' }}>SL</th>
-                    <th style={{ padding: '10px 14px' }}>TP</th>
-                    <th style={{ padding: '10px 14px' }}>Exit</th>
-                    <th style={{ padding: '10px 14px' }}>Net P&L</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {parsedPreview.valid.slice(0, 15).map((t, idx) => {
-                    const pnl = Number(t.pnl ?? t.profit) || 0;
-                    return (
-                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '10px 14px', fontFamily: 'monospace' }}>
-                          {t.brokerId || t.ticket}
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>
-                          {formatToLocalTime(t.openAt || t.openTime, brokerUtcOffset)}
-                        </td>
-                        <td style={{ padding: '10px 14px', fontWeight: 700 }}>{t.symbol}</td>
-                        <td
-                          style={{
-                            padding: '10px 14px',
-                            color: (t.direction || t.type || '').toString().toLowerCase().includes('sell')
-                              ? 'var(--color-loss)'
-                              : 'var(--color-win)',
-                          }}
-                        >
-                          {t.direction || t.type}
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>{t.volume ?? t.size}</td>
-                        <td style={{ padding: '10px 14px' }}>{t.entryPrice}</td>
-                        <td style={{ padding: '10px 14px' }}>{t.stopLoss || '—'}</td>
-                        <td style={{ padding: '10px 14px' }}>{t.takeProfit || '—'}</td>
-                        <td style={{ padding: '10px 14px' }}>{t.exitPrice || '—'}</td>
-                        <td
-                          style={{
-                            padding: '10px 14px',
-                            fontWeight: 700,
-                            color: pnl >= 0 ? 'var(--color-win)' : 'var(--color-loss)',
-                          }}
-                        >
-                          {pnl >= 0 ? '+' : ''}{sym}{pnl.toFixed(2)}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {parsedPreview.valid.length > 15 && (
-                <div style={{ padding: '10px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '11px' }}>
-                  Showing first 15 of {parsedPreview.valid.length} trades…
-                </div>
+              {preview.invalid.slice(0, 20).map((item) => (
+                <p key={item.rowNumber}>
+                  Record {item.rowNumber}: {item.reason}
+                </p>
+              ))}
+
+              {preview.invalid.length > 20 && (
+                <p>
+                  …and {preview.invalid.length - 20} more.
+                </p>
               )}
             </div>
           )}
-        </div>
+
+          {!!plan.conflicts.length && (
+            <div className="ts-card">
+              <h4>Ticket conflicts</h4>
+
+              {plan.conflicts.slice(0, 20).map((item, index) => (
+                <p key={`${item.ticket}-${index}`}>
+                  Ticket {item.ticket}: {item.reason}
+                </p>
+              ))}
+
+              {plan.conflicts.length > 20 && (
+                <p>
+                  …and {plan.conflicts.length - 20} more.
+                </p>
+              )}
+            </div>
+          )}
+
+          {!!preview.skipped.length && (
+            <div className="ts-card">
+              <h4>Skipped non-position records</h4>
+
+              {preview.skipped.slice(0, 10).map((item) => (
+                <p key={item.rowNumber}>
+                  Record {item.rowNumber}: {item.reason}
+                </p>
+              ))}
+
+              {preview.skipped.length > 10 && (
+                <p>
+                  …and {preview.skipped.length - 10} more.
+                </p>
+              )}
+            </div>
+          )}
+
+          {!!plan.fresh.length && (
+            <div
+              className="ts-card"
+              style={{ overflowX: 'auto', padding: 0 }}
+            >
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  textAlign: 'left',
+                  fontSize: '12px',
+                }}
+              >
+                <thead>
+                  <tr>
+                    {[
+                      'Ticket',
+                      'Open (local)',
+                      'Close (local)',
+                      'Symbol',
+                      'Direction',
+                      'Volume',
+                      'Entry',
+                      'SL',
+                      'TP',
+                      'Exit',
+                      'Net P&L',
+                    ].map((heading) => (
+                      <th style={cellStyle} key={heading}>
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {plan.fresh.slice(0, 15).map((trade) => (
+                    <tr key={trade.id}>
+                      <td style={cellStyle}>
+                        {trade.ticket}
+                      </td>
+                      <td style={cellStyle}>
+                        {formatToLocalTime(
+                          trade.openAt,
+                          brokerUtcOffset
+                        )}
+                      </td>
+                      <td style={cellStyle}>
+                        {formatToLocalTime(
+                          trade.closeAt,
+                          brokerUtcOffset
+                        )}
+                      </td>
+                      <td style={cellStyle}>
+                        {trade.symbol}
+                      </td>
+                      <td
+                        style={{
+                          ...cellStyle,
+                          color: trade.type === 'sell'
+                            ? 'var(--color-loss)'
+                            : 'var(--color-win)',
+                        }}
+                      >
+                        {trade.direction}
+                      </td>
+                      <td style={cellStyle}>
+                        {trade.volume}
+                      </td>
+                      <td style={cellStyle}>
+                        {trade.entryPrice}
+                      </td>
+                      <td style={cellStyle}>
+                        {trade.stopLoss || '—'}
+                      </td>
+                      <td style={cellStyle}>
+                        {trade.takeProfit || '—'}
+                      </td>
+                      <td style={cellStyle}>
+                        {trade.exitPrice}
+                      </td>
+                      <td
+                        style={{
+                          ...cellStyle,
+                          color: trade.pnl < 0
+                            ? 'var(--color-loss)'
+                            : 'var(--color-win)',
+                        }}
+                      >
+                        {money(trade.pnl)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <p style={{ padding: '10px', fontSize: '12px' }}>
+                Showing {Math.min(15, plan.fresh.length)} of{' '}
+                {plan.fresh.length} new positions. Preview does
+                not save trades.
+              </p>
+            </div>
+          )}
+        </>
       )}
 
       <div className="ts-card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}><ScrollText size={16} /> Activity Log</h3>
-          {activityLog.length > 0 && (
-            <button onClick={clearActivityLog} className="ts-btn ts-btn-danger" style={{ fontSize: '11px', padding: '4px 8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
+          <h3><ScrollText size={16} /> Activity Log</h3>
+
+          {!!activityLog.length && (
+            <button
+              className="ts-btn ts-btn-danger"
+              onClick={clearActivityLog}
+            >
               Clear Log
             </button>
           )}
         </div>
 
-        {activityLog.length === 0 ? (
-          <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
-            No import or export history recorded yet.
-          </p>
+        {!activityLog.length ? (
+          <p>No import or export history recorded yet.</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {activityLog.map((log) => (
-              <div
-                key={log.id}
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  fontSize: '12px',
-                  padding: '8px 0',
-                  borderBottom: '1px solid var(--border-color)',
-                  gap: '12px',
-                  flexWrap: 'wrap',
-                }}
-              >
-                <span>
-                  <strong>{log.type === 'import' ? <><Download size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Imported</> : <><Upload size={12} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Exported</>}</strong>{' '}
-                  {log.tradeCount} trade{log.tradeCount === 1 ? '' : 's'} ({log.filename})
-                </span>
-                <span style={{ color: 'var(--text-secondary)' }}>
-                  {new Date(log.timestamp).toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
+          activityLog.map((log) => (
+            <div
+              key={log.id}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: '12px',
+                flexWrap: 'wrap',
+                padding: '8px 0',
+                fontSize: '12px',
+                borderBottom: '1px solid var(--border-color)',
+              }}
+            >
+              <span>
+                <strong>
+                  {log.type === 'import' ? 'Imported' : 'Exported'}
+                </strong>{' '}
+                {log.tradeCount} trade
+                {log.tradeCount === 1 ? '' : 's'} ({log.filename})
+              </span>
+
+              <span>
+                {new Date(log.timestamp).toLocaleString()}
+              </span>
+            </div>
+          ))
         )}
       </div>
     </div>

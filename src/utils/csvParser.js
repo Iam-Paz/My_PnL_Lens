@@ -1,163 +1,247 @@
-/**
- * Robust MT5 CSV parser with dynamic header detection + positional fallback.
- */
+import {
+  parseMT5Number,
+  parseMT5WallTime,
+  normalizeMT5Side,
+} from './mt5Validation.js';
 
-export function parseRawCSV(text) {
-  const rows = [];
-  let currentRow = [];
-  let currentToken = '';
-  let inQuotes = false;
+const normal = (value) => String(value ?? '')
+  .trim()
+  .toLowerCase()
+  .replace(/\s/g, '');
 
-  const sample = text.slice(0, 2000);
-  let delimiter = ',';
-  if ((sample.match(/\t/g) || []).length > (sample.match(/,/g) || []).length) delimiter = '\t';
-  else if ((sample.match(/;/g) || []).length > (sample.match(/,/g) || []).length) delimiter = ';';
+const HEADERS = [
+  'time', 'position', 'symbol', 'type', 'volume', 'price',
+  's/l', 't/p', 'time', 'price', 'commission', 'swap', 'profit',
+];
 
-  for (let i = 0; i < text.length; i++) {
-    const char = text[i];
-    const nextChar = text[i + 1];
+// Spreadsheet exports may append empty columns. Only remove extras after
+// the 13 supported columns; never remove blank SL/TP or required fields.
+function positionCells(row) {
+  const cells = row.slice();
 
-    if (char === '"') {
-      if (inQuotes && nextChar === '"') {
-        currentToken += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
+  while (
+    cells.length > 13 &&
+    !String(cells[cells.length - 1] ?? '').trim()
+  ) {
+    cells.pop();
+  }
+
+  return cells;
+}
+
+function isPositionHeader(row) {
+  const cells = positionCells(row);
+
+  return cells.length === HEADERS.length && cells.every((cell, i) => {
+    const value = normal(cell);
+    return value === HEADERS[i] || (i === 1 && value === 'ticket');
+  });
+}
+
+// Detect separators outside quoted fields, not decimal commas inside them.
+function detectDelimiter(text) {
+  const scores = new Map([['\t', 0], [';', 0], [',', 0]]);
+
+  for (const line of text.split(/\r?\n/).slice(0, 30)) {
+    const counts = new Map([['\t', 0], [';', 0], [',', 0]]);
+    let quoted = false;
+
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === '"') {
+        if (quoted && line[i + 1] === '"') i++;
+        else quoted = !quoted;
+      } else if (!quoted && counts.has(line[i])) {
+        counts.set(line[i], counts.get(line[i]) + 1);
       }
-    } else if (char === delimiter && !inQuotes) {
-      currentRow.push(currentToken.trim());
-      currentToken = '';
-    } else if ((char === '\r' || char === '\n') && !inQuotes) {
-      if (char === '\r' && nextChar === '\n') i++;
-      currentRow.push(currentToken.trim());
-      if (currentRow.some((c) => c.length > 0)) rows.push(currentRow);
-      currentRow = [];
-      currentToken = '';
-    } else {
-      currentToken += char;
+    }
+
+    for (const [key, count] of counts) {
+      scores.set(key, Math.max(scores.get(key), count));
     }
   }
 
-  if (currentToken || currentRow.length > 0) {
-    currentRow.push(currentToken.trim());
-    if (currentRow.some((c) => c.length > 0)) rows.push(currentRow);
+  return [...scores].sort((a, b) => b[1] - a[1])[0][0];
+}
+
+export function parseRawCSV(value) {
+  const text = String(value ?? '').replace(/^\uFEFF/, '');
+  const delimiter = detectDelimiter(text);
+  const rows = [];
+
+  let row = [];
+  let token = '';
+  let quoted = false;
+  let endedQuote = false;
+
+  const pushRow = () => {
+    row.push(token.trim());
+
+    if (row.some((cell) => cell.length)) rows.push(row);
+
+    row = [];
+    token = '';
+    endedQuote = false;
+  };
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+
+    if (char === '"') {
+      if (quoted && text[i + 1] === '"') {
+        token += '"';
+        i++;
+      } else if (quoted) {
+        quoted = false;
+        endedQuote = true;
+      } else if (!token.trim() && !endedQuote) {
+        quoted = true;
+      } else {
+        throw new Error('Malformed quoted field in the import file.');
+      }
+    } else if (!quoted && char === delimiter) {
+      row.push(token.trim());
+      token = '';
+      endedQuote = false;
+    } else if (!quoted && (char === '\r' || char === '\n')) {
+      if (char === '\r' && text[i + 1] === '\n') i++;
+      pushRow();
+    } else {
+      if (endedQuote && !/\s/.test(char)) {
+        throw new Error('Unexpected text after a quoted field.');
+      }
+
+      token += char;
+    }
   }
+
+  if (quoted) {
+    throw new Error('Unclosed quoted field in the import file.');
+  }
+
+  if (token || row.length || endedQuote) pushRow();
 
   return rows;
 }
 
-function parseNumber(val) {
-  if (val === undefined || val === null || val === '') return 0;
-  let s = String(val).trim();
-  if (!s) return 0;
-  s = s.replace(/\s+/g, '').replace(/\$/g, '');
-  // Both separators present: the LAST one is the decimal mark
-  // (US thousands "1,234.56" and EU decimals "1.234,56" both work).
-  if (s.includes(',') && s.includes('.')) {
-    if (s.lastIndexOf(',') > s.lastIndexOf('.')) s = s.replace(/\./g, '').replace(',', '.');
-    else s = s.replace(/,/g, '');
-  } else if (s.includes(',')) {
-    // Lone comma(s): decimal mark ONLY when exactly one comma is followed by
-    // 1-2 digits ("1,5" EU style); otherwise thousands ("1,234", "1,234,567").
-    const parts = s.split(',');
-    const tail = parts[parts.length - 1];
-    if (parts.length === 2 && /^\d{1,2}$/.test(tail)) s = s.replace(',', '.');
-    else s = s.replace(/,/g, '');
-  }
-  const n = parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
-}
+function positionTrade(rawRow) {
+  const row = positionCells(rawRow);
 
-function parseMT5Date(dateStr) {
-  if (!dateStr) return null;
-  let s = String(dateStr).trim();
-  if (!s) return null;
-  s = s.replace(/\//g, '-');
-
-  // NOTE: returns broker WALL time (no 'Z', no UTC shift). formatToLocalTime()
-  // applies the broker offset exactly once at display, so parsing must not shift.
-  const m = s.match(
-    /^(\d{4})[.-](\d{2})[.-](\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?/
-  );
-  if (m) {
-    const [, y, mo, d, hh = '00', mm = '00', ss = '00'] = m;
-    return `${y}-${mo}-${d}T${hh}:${mm}:${ss}`;
+  if (row.length !== 13) {
+    throw new Error(
+      'Expected 13 Positions columns, optionally followed by empty columns. Check separators and blank SL/TP cells.'
+    );
   }
 
-  // Last resort: let Date parse it, then keep its LOCAL wall parts as-is.
-  const dt2 = new Date(s.replace(/\./g, '-').replace(' ', 'T'));
-  if (isNaN(dt2.getTime())) return null;
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${dt2.getFullYear()}-${pad(dt2.getMonth() + 1)}-${pad(dt2.getDate())}T${pad(dt2.getHours())}:${pad(dt2.getMinutes())}:${pad(dt2.getSeconds())}`;
-}
+  const [
+    openRaw, ticketRaw, symbolRaw, sideRaw, volumeRaw, entryRaw,
+    slRaw, tpRaw, closeRaw, exitRaw, commissionRaw, swapRaw, profitRaw,
+  ] = row;
 
-function looksLikeSymbol(v) {
-  const s = String(v || '').trim();
-  if (!s) return false;
-  if (/^-?\d+(\.\d+)?$/.test(s)) return false;
-  if (/^\d{4}[-./]\d{2}[-./]\d{2}/.test(s)) return false;
-  const lower = s.toLowerCase();
-  if (['buy', 'sell', 'balance', 'credit', 'buy limit', 'sell limit'].includes(lower)) return false;
-  return /[a-zA-Z]/.test(s);
-}
+  const ticket = String(ticketRaw).trim();
 
-// Stable id for ticketless CSV rows: the same file always yields the same id,
-// so re-imports dedupe instead of duplicating. (djb2 hash, base36.)
-function hashId(str) {
-  let h = 5381;
-  const s = String(str);
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
-  return 'csv_' + h.toString(36);
-}
+  if (!/^\d+$/.test(ticket)) {
+    throw new Error(
+      'Missing or invalid numeric position ticket. Ticketless rows are not supported.'
+    );
+  }
 
-function buildTrade({
-  rowIndex = 0,
-  ticket,
-  openRaw,
-  closeRaw,
-  symbol,
-  typeRaw,
-  volume,
-  entry,
-  sl,
-  tp,
-  exit,
-  commission,
-  swap,
-  profit,
-}) {
-  const openAtISO = parseMT5Date(openRaw);
-  const closeAtISO = parseMT5Date(closeRaw);
-  const rawType = String(typeRaw || '').toLowerCase();
-  const isSell = rawType.includes('sell') || rawType.includes('short');
-  const direction = isSell ? 'Short' : 'Long';
-  const comm = parseNumber(commission);
-  const sw = parseNumber(swap);
-  const gross = parseNumber(profit);
-  const net = parseFloat((gross + comm + sw).toFixed(2));
-  const cleanTicket = String(ticket === undefined || ticket === null ? '' : ticket).trim();
-  const ticketId = cleanTicket || hashId([symbol, openRaw, closeRaw, typeRaw, volume, profit, rowIndex].join('|'));
+  const type = normalizeMT5Side(sideRaw);
+
+  if (!type) {
+    throw new Error(
+      'Unsupported position type; only buy/sell positions are supported.'
+    );
+  }
+
+  const symbol = String(symbolRaw).trim().toUpperCase();
+
+  if (
+    !/^[A-Z0-9._/#-]+$/.test(symbol) ||
+    !/[A-Z]/.test(symbol)
+  ) {
+    throw new Error('Missing or invalid symbol.');
+  }
+
+  const openAt = parseMT5WallTime(openRaw);
+  const closeAt = parseMT5WallTime(closeRaw);
+
+  if (!openAt) {
+    throw new Error('Missing or invalid open timestamp.');
+  }
+
+  if (!closeAt) {
+    throw new Error(
+      'Missing or invalid close timestamp; this layout requires closed positions.'
+    );
+  }
+
+  if (closeAt < openAt) {
+    throw new Error('Close time is earlier than open time.');
+  }
+
+  const required = (value, label, positive = false) => {
+    // WPS/MT5 accounting-style output can write "- 0.52". Allow horizontal
+    // spacing immediately after a leading sign, not arbitrary digit spacing.
+    const input = typeof value === 'string'
+      ? value.trim().replace(/^([+-])[ \u00a0\u202f]+(?=[\d.])/, '$1')
+      : value;
+
+    const number = parseMT5Number(input);
+
+    if (number === null || (positive && number <= 0)) {
+      throw new Error(`Missing or invalid ${label}.`);
+    }
+
+    return number;
+  };
+
+  const optionalPrice = (value, label) => {
+    if (!String(value ?? '').trim()) return 0;
+
+    const number = required(value, label);
+
+    if (number < 0) {
+      throw new Error(`Invalid negative ${label}.`);
+    }
+
+    return number;
+  };
+
+  const volume = required(volumeRaw, 'volume', true);
+  const entryPrice = required(entryRaw, 'entry price', true);
+  const exitPrice = required(exitRaw, 'exit price', true);
+  const stopLoss = optionalPrice(slRaw, 'stop loss');
+  const takeProfit = optionalPrice(tpRaw, 'take profit');
+  const commission = required(commissionRaw, 'commission');
+  const swap = required(swapRaw, 'swap');
+  const gross = required(profitRaw, 'gross profit');
+
+  const net = Number((gross + commission + swap).toFixed(2));
+
+  if (!Number.isFinite(net)) {
+    throw new Error('Net profit is outside the supported numeric range.');
+  }
 
   return {
-    id: 'trade-' + ticketId,
-    brokerId: ticketId,
-    ticket: ticketId,
-    date: openAtISO ? openAtISO.split('T')[0] : '',
-    openAt: openAtISO,
-    closeAt: closeAtISO,
-    openTime: openAtISO || openRaw || '',
-    closeTime: closeAtISO || closeRaw || '',
-    symbol: String(symbol || 'UNKNOWN').toUpperCase(),
-    type: isSell ? 'sell' : 'buy',
-    direction,
-    size: parseNumber(volume),
-    volume: parseNumber(volume),
-    entryPrice: parseNumber(entry),
-    stopLoss: parseNumber(sl),
-    takeProfit: parseNumber(tp),
-    exitPrice: parseNumber(exit),
-    commission: comm,
-    swap: sw,
+    id: 'trade-' + ticket,
+    brokerId: ticket,
+    ticket,
+    date: openAt.slice(0, 10),
+    openAt,
+    closeAt,
+    openTime: openAt,
+    closeTime: closeAt,
+    symbol,
+    type,
+    direction: type === 'sell' ? 'Short' : 'Long',
+    size: volume,
+    volume,
+    entryPrice,
+    stopLoss,
+    takeProfit,
+    exitPrice,
+    commission,
+    swap,
     profit: net,
     pnl: net,
     setup: 'Untagged',
@@ -168,146 +252,112 @@ function buildTrade({
   };
 }
 
-/** Classic MT5 deal history positional mapping */
-export function mapMT5RowToTrade(row = [], rowIndex = 0) {
-  return buildTrade({
-    rowIndex,
-    openRaw: row[0],
-    ticket: row[1],
-    symbol: row[2],
-    typeRaw: row[3],
-    volume: row[4],
-    entry: row[5],
-    sl: row[6],
-    tp: row[7],
-    closeRaw: row[8],
-    exit: row[9],
-    commission: row[10],
-    swap: row[11],
-    profit: row[12],
-  });
+export function mapMT5RowToTrade(row = []) {
+  return positionTrade(row);
 }
 
-function scoreAsMt5Header(cells = []) {
-  const h = cells.map((c) => String(c || '').toLowerCase());
-  let score = 0;
-  if (h.some((x) => x.includes('symbol'))) score += 3;
-  if (h.some((x) => x.includes('profit'))) score += 3;
-  if (h.some((x) => x.includes('position') || x.includes('ticket'))) score += 2;
-  if (h.some((x) => x.includes('volume') || x.includes('lots'))) score += 1;
-  if (h.some((x) => x.includes('time') || x.includes('date'))) score += 1;
-  if (h.some((x) => x.includes('type'))) score += 1;
-  return score;
-}
+export function parseCSVReport(csvText) {
+  const rows = parseRawCSV(csvText);
 
-function mapByHeaders(headers, row, rowIndex = 0) {
-  const hs = headers.map((h) => String(h || '').trim().toLowerCase().replace(/["']/g, ''));
+  if (!rows.length) {
+    return {
+      trades: [],
+      invalid: [],
+      skipped: [],
+      totalRows: 0,
+      stoppedAt: '',
+    };
+  }
 
-  const timeIdx = [];
-  const priceIdx = [];
-  let ticketIdx = -1;
-  let symbolIdx = -1;
-  let typeIdx = -1;
-  let volumeIdx = -1;
-  let slIdx = -1;
-  let tpIdx = -1;
-  let commIdx = -1;
-  let swapIdx = -1;
-  let profitIdx = -1;
+  const headerIndex = rows.findIndex(
+    (row, index) => index < 30 && isPositionHeader(row)
+  );
 
-  hs.forEach((h, i) => {
-    if (h.includes('time') || h.includes('date')) timeIdx.push(i);
-    else if (h.includes('position') || h.includes('ticket') || h.includes('order') || h === 'id') ticketIdx = i;
-    else if (h === 'symbol' || h.includes('symbol') || h.includes('item') || h.includes('asset') || h.includes('pair')) symbolIdx = i;
-    else if (h.includes('type') || h.includes('direction') || h.includes('side')) typeIdx = i;
-    else if (h.includes('volume') || h.includes('lots') || h === 'size') volumeIdx = i;
-    else if (h.includes('s / l') || h.includes('s/l') || h === 'sl' || h.includes('stop')) slIdx = i;
-    else if (h.includes('t / p') || h.includes('t/p') || h === 'tp' || h.includes('take')) tpIdx = i;
-    else if (h.includes('commission') || h === 'comm') commIdx = i;
-    else if (h.includes('swap')) swapIdx = i;
-    else if (h.includes('profit') || h.includes('p/l') || h.includes('pnl') || h === 'net') profitIdx = i;
-    else if (h.includes('price')) priceIdx.push(i);
-  });
-
-  const get = (i) => (i >= 0 && i < row.length ? row[i] : '');
-
-  return buildTrade({
-    rowIndex,
-    openRaw: get(timeIdx[0]),
-    closeRaw: get(timeIdx[1]),
-    ticket: get(ticketIdx),
-    symbol: get(symbolIdx),
-    typeRaw: get(typeIdx),
-    volume: get(volumeIdx),
-    entry: get(priceIdx[0]),
-    exit: get(priceIdx[1]),
-    sl: get(slIdx),
-    tp: get(tpIdx),
-    commission: get(commIdx),
-    swap: get(swapIdx),
-    profit: get(profitIdx),
-  });
-}
-
-export function parseCSVToTrades(csvText) {
-  const rows = parseRawCSV(String(csvText || ''));
-  if (!rows.length) return [];
-
-  let headerIdx = -1;
-  let bestScore = 0;
-  for (let i = 0; i < Math.min(15, rows.length); i++) {
-    const sc = scoreAsMt5Header(rows[i]);
-    if (sc > bestScore) {
-      bestScore = sc;
-      headerIdx = i;
-    }
+  if (headerIndex < 0) {
+    throw new Error(
+      'Unsupported layout. Use the 13-column MT5 closed Positions table, including its header. Journal exports, Orders and Deals are not supported.'
+    );
   }
 
   const trades = [];
+  const invalid = [];
+  const skipped = [];
 
-  if (headerIdx >= 0 && bestScore >= 5) {
-    const headers = rows[headerIdx];
-    for (let i = headerIdx + 1; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || row.length < 5) continue;
-      if (scoreAsMt5Header(row) >= 5) continue;
+  let totalRows = 0;
+  let stoppedAt = '';
 
-      const t = mapByHeaders(headers, row, i);
-      const bad =
-        (!t.symbol || t.symbol === 'UNKNOWN') &&
-        !parseMT5Date(t.openAt || t.openTime) &&
-        !(Number(t.pnl) || Number(t.profit));
+  const nonTradeTypes = new Set([
+    'balance', 'credit', 'deposit', 'withdrawal', 'charge',
+    'correction', 'bonus', 'interest', 'commission',
+  ]);
 
-      const finalTrade = bad && row.length >= 10 ? mapMT5RowToTrade(row, i) : t;
+  const sections = new Set([
+    'orders', 'deals', 'results', 'balancegraph', 'openpositions',
+  ]);
 
-      const hasSignal =
-        (finalTrade.symbol && finalTrade.symbol !== 'UNKNOWN') ||
-        looksLikeSymbol(row[2]) ||
-        String(finalTrade.ticket || '').length > 3;
+  for (let i = headerIndex + 1; i < rows.length; i++) {
+    const row = rows[i];
 
-      if (!hasSignal && !(Number(finalTrade.profit) || Number(finalTrade.pnl))) continue;
-      trades.push(finalTrade);
+    const first = normal(
+      row.find((cell) => String(cell).trim()) || ''
+    ).replace(/:$/, '');
+
+    const orderOrDealHeader =
+      normal(row[0]) === 'time' &&
+      ['order', 'deal'].includes(normal(row[1]));
+
+    if (sections.has(first) || orderOrDealHeader) {
+      stoppedAt = row.join(' ').trim();
+      break;
+    }
+
+    if (isPositionHeader(row)) continue;
+
+    totalRows++;
+
+    const rowNumber = i + 1;
+
+    if (
+      ['total', 'totals'].includes(first) ||
+      nonTradeTypes.has(normal(row[3]))
+    ) {
+      skipped.push({
+        rowNumber,
+        reason: 'Non-position transaction or totals row.',
+      });
+      continue;
+    }
+
+    try {
+      trades.push(positionTrade(row));
+    } catch (error) {
+      invalid.push({
+        rowNumber,
+        reason: error.message,
+      });
     }
   }
 
-  if (!trades.length) {
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || row.length < 10) continue;
-      if (scoreAsMt5Header(row) >= 5) continue;
+  return {
+    trades,
+    invalid,
+    skipped,
+    totalRows,
+    stoppedAt,
+  };
+}
 
-      const maybeTicket = String(row[1] || '');
-      const maybeSymbol = String(row[2] || '');
-      const maybeTime = String(row[0] || '');
-      const timeOk = /^\d{4}/.test(maybeTime) || parseMT5Date(maybeTime);
-      const ticketOk = /^\d{5,}$/.test(maybeTicket);
-      const symbolOk = looksLikeSymbol(maybeSymbol);
+// Legacy callers must not silently import only the valid subset.
+export function parseCSVToTrades(csvText) {
+  const report = parseCSVReport(csvText);
 
-      if (!(timeOk && (ticketOk || symbolOk))) continue;
+  if (report.invalid.length) {
+    const first = report.invalid[0];
 
-      trades.push(mapMT5RowToTrade(row, i));
-    }
+    throw new Error(
+      `${report.invalid.length} invalid row(s). Record ${first.rowNumber}: ${first.reason} No trades imported.`
+    );
   }
 
-  return trades;
+  return report.trades;
 }
