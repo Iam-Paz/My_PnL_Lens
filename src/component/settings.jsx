@@ -1,7 +1,18 @@
-import { useState, useEffect } from 'react';
-import { SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun, TrendingUp, Monitor, Download, Upload, TriangleAlert, CircleCheck, CircleX } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {
+  SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun,
+  TrendingUp, Monitor, Download, Upload, TriangleAlert,
+  CircleCheck, CircleX,
+} from 'lucide-react';
 import { THEME_MODES } from '../utils/themeConfig.js';
-import { buildBackup, backupSummary, downloadBackup, backupFileName, parseBackup, applyBackup } from '../utils/backup.js';
+import {
+  buildBackup,
+  backupSummary,
+  downloadBackup,
+  backupFileName,
+  parseBackup,
+  applyBackup,
+} from '../utils/backup.js';
 
 export default function Settings({
   settings,
@@ -17,11 +28,19 @@ export default function Settings({
   setThemeMode,
 }) {
   const [savedMsg, setSavedMsg] = useState(false);
-  const [nameDraft, setNameDraft] = useState(displayName);
+  const [nameEdit, setNameEdit] = useState({
+    base: displayName,
+    value: displayName,
+  });
 
-  useEffect(() => {
-    setNameDraft(displayName);
-  }, [displayName]);
+  const nameDraft = nameEdit.base === displayName
+    ? nameEdit.value
+    : displayName;
+
+  const setNameDraft = (value) => setNameEdit({
+    base: displayName,
+    value,
+  });
 
   const commitDisplayName = () => {
     if (setDisplayName) setDisplayName(nameDraft);
@@ -31,78 +50,214 @@ export default function Settings({
     setSettings((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
+  const handleSave = (event) => {
+    event.preventDefault();
     setSavedMsg(true);
     setTimeout(() => setSavedMsg(false), 2000);
   };
 
-  // ---- Backup & Restore (full-device JSON) ----
+  // Backups cover persisted data, not unsaved form drafts.
   const [backupOk, setBackupOk] = useState('');
   const [backupErr, setBackupErr] = useState('');
-  const [pending, setPending] = useState(null); // { backup, summary, fileName }
+  const [pending, setPending] = useState(null);
+  const [reading, setReading] = useState(false);
+  const [safetyData, setSafetyData] = useState('');
+  const [safetyChecked, setSafetyChecked] = useState(false);
+  const [restoreBlocked, setRestoreBlocked] = useState(false);
 
-  const clearBackupMsgs = () => { setBackupOk(''); setBackupErr(''); };
+  const fileVersion = useRef(0);
+  const restoring = useRef(false);
+
+  useEffect(() => () => {
+    fileVersion.current++;
+  }, []);
+
+  const clearBackupMsgs = () => {
+    setBackupOk('');
+    setBackupErr('');
+  };
+
+  const resetSafety = () => {
+    setSafetyData('');
+    setSafetyChecked(false);
+  };
 
   const handleExportBackup = () => {
+    if (restoreBlocked) return;
+
     clearBackupMsgs();
-    setPending(null);
+
     try {
-      const b = buildBackup();
-      const s = backupSummary(b);
-      downloadBackup(b, backupFileName());
-      setBackupOk(`Backup downloaded (${s.accounts} account${s.accounts === 1 ? '' : 's'}, ${s.trades} trades, ${s.playbooks} playbooks)`);
-    } catch (err) {
-      console.error(err);
-      setBackupErr('Export failed: ' + (err?.message || 'unknown error'));
+      const backup = buildBackup();
+      const summary = backupSummary(backup);
+
+      downloadBackup(backup, backupFileName());
+
+      setBackupOk(
+        `Download requested: ${summary.accounts} accounts, ${summary.trades} trades, ${summary.playbooks} playbooks, ${summary.reviews} period reviews. Check Downloads; the app cannot verify that the file saved.`
+      );
+    } catch (error) {
+      setBackupErr(error.message || 'Backup export failed.');
     }
   };
 
-  const handleBackupFile = (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ''; // allow picking the same file again
-    if (!file) return;
+  const handleBackupFile = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file || restoreBlocked) return;
+
+    const version = ++fileVersion.current;
+
     clearBackupMsgs();
+    resetSafety();
     setPending(null);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      try {
-        const b = parseBackup(ev.target.result);
-        setPending({ backup: b, summary: backupSummary(b), fileName: file.name });
-      } catch (err) {
-        setBackupErr(err?.message || 'Could not read backup file.');
+    setReading(true);
+
+    try {
+      const text = await file.text();
+
+      if (version !== fileVersion.current) return;
+
+      const backup = parseBackup(text);
+
+      setPending({
+        backup,
+        summary: backupSummary(backup),
+        fileName: file.name,
+      });
+    } catch (error) {
+      if (version === fileVersion.current) {
+        setBackupErr(
+          error.message || 'Could not read backup.'
+        );
       }
-    };
-    reader.onerror = () => setBackupErr('Could not read that file.');
-    reader.readAsText(file);
+    } finally {
+      if (version === fileVersion.current) {
+        setReading(false);
+      }
+    }
   };
 
-  const cancelRestore = () => { setPending(null); clearBackupMsgs(); };
+  const cancelRestore = () => {
+    fileVersion.current++;
+    setReading(false);
+    setPending(null);
+    resetSafety();
+    clearBackupMsgs();
+  };
+
+  const downloadSafetyCopy = () => {
+    if (!pending || restoreBlocked) return;
+
+    clearBackupMsgs();
+    resetSafety();
+
+    try {
+      const backup = buildBackup();
+
+      downloadBackup(
+        backup,
+        backupFileName('mypnl-lens-pre-restore')
+      );
+
+      setSafetyData(JSON.stringify(backup.data));
+
+      setBackupOk(
+        'Safety-copy download requested. Locate the JSON file and check that it saved before ticking the confirmation below.'
+      );
+    } catch (error) {
+      setBackupErr(
+        `Cannot prepare safety copy. Restore remains disabled. ${error.message || ''}`
+      );
+    }
+  };
 
   const confirmRestore = () => {
-    if (!pending) return;
-    const s = pending.summary;
-    const when = s.exportedAt ? new Date(s.exportedAt).toLocaleString() : 'unknown date';
-    if (!confirm(`Restore backup "${pending.fileName}"?\n\nThis REPLACES all data on this device with:\n- ${s.accounts} accounts, ${s.trades} trades, ${s.playbooks} playbooks\n- Exported: ${when}\n\nYour current data is auto-downloaded first as a safety copy.`)) return;
+    if (
+      !pending ||
+      !safetyData ||
+      !safetyChecked ||
+      restoreBlocked ||
+      restoring.current
+    ) {
+      return;
+    }
+
+    clearBackupMsgs();
+
     try {
-      downloadBackup(buildBackup(), backupFileName('mypnl-lens-pre-restore'));
+      if (JSON.stringify(buildBackup().data) !== safetyData) {
+        resetSafety();
+
+        setBackupErr(
+          'Saved data changed after the safety copy. Download and check a fresh safety copy before restoring.'
+        );
+        return;
+      }
+
+      const summary = backupSummary(pending.backup);
+
+      const preserved = summary.preserved.length
+        ? summary.preserved.join(', ')
+        : 'None';
+
+      const approved = confirm(
+        `Restore "${pending.fileName}"?\n\nIncluded fields REPLACE saved values; trades are not merged.\n${summary.accounts} accounts, ${summary.trades} trades, ${summary.playbooks} playbooks, ${summary.reviews} included period reviews.\n\nOmitted fields left untouched: ${preserved}\n\nUse only this app tab during restore. Continue?`
+      );
+
+      if (!approved) return;
+
+      restoring.current = true;
+
       applyBackup(pending.backup);
-      alert('Backup restored. The app will now reload.');
+
+      alert(
+        'Included backup fields were written and verified. The app will reload. Omitted fields were left untouched.'
+      );
+
       window.location.reload();
-    } catch (err) {
-      console.error(err);
-      setBackupErr('Restore failed: ' + (err?.message || 'unknown error'));
+    } catch (error) {
+      setBackupErr(
+        error.message ||
+        'Restore failed. No success reload was performed.'
+      );
+
+      resetSafety();
+
+      if (error.rollbackFailed) {
+        setRestoreBlocked(true);
+      }
+    } finally {
+      restoring.current = false;
     }
   };
 
   return (
     <div>
-      <h1 style={{ fontSize: '24px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '10px' }}><SettingsIcon size={24} /> Settings</h1>
+      <h1
+        style={{
+          fontSize: '24px',
+          marginBottom: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+        }}
+      >
+        <SettingsIcon size={24} /> Settings
+      </h1>
 
       <div style={{ marginBottom: '32px' }}>
-        <p style={{ color: 'var(--text-secondary)', marginTop: 0, marginBottom: '16px' }}>
+        <p
+          style={{
+            color: 'var(--text-secondary)',
+            marginTop: 0,
+            marginBottom: '16px',
+          }}
+        >
           Global App Settings
         </p>
+
         <div className="ts-card" style={{ maxWidth: '520px' }}>
           <h3 style={sectionTitle}>Personalization</h3>
 
@@ -113,71 +268,147 @@ export default function Settings({
             value={nameDraft}
             maxLength={40}
             placeholder="e.g. paz"
-            onChange={(e) => setNameDraft(e.target.value)}
+            onChange={(event) => setNameDraft(event.target.value)}
             onBlur={commitDisplayName}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
                 commitDisplayName();
-                e.target.blur();
+                event.target.blur();
               }
             }}
           />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
+
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              display: 'block',
+              marginTop: '6px',
+            }}
+          >
             App name preview:{' '}
-            {/* Added brand font styling to the preview tag */}
-            <strong style={{ color: 'var(--text-bright)', fontFamily: 'var(--font-brand)', fontWeight: 700, letterSpacing: '0.02em' }}>
+            <strong
+              style={{
+                color: 'var(--text-bright)',
+                fontFamily: 'var(--font-brand)',
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+              }}
+            >
               {appName}
             </strong>
-            {' '}(letters & numbers only; empty becomes My_PnL_Lens)
+            {' '}(letters &amp; numbers only; empty becomes My_PnL_Lens)
           </span>
 
+          <label style={{ ...labelStyle, marginTop: '16px' }}>
+            Appearance
+          </label>
 
-          <label style={{ ...labelStyle, marginTop: '16px' }}>Appearance</label>
           <div style={{ display: 'flex', gap: '6px' }}>
-            {THEME_MODES.map((m) => {
-              const active = themeMode === m.id;
+            {THEME_MODES.map((mode) => {
+              const active = themeMode === mode.id;
+
               return (
                 <button
-                  key={m.id}
+                  key={mode.id}
                   type="button"
-                  onClick={() => setThemeMode?.(m.id)}
+                  onClick={() => setThemeMode?.(mode.id)}
                   className="ts-btn"
                   style={{
                     flex: 1,
                     justifyContent: 'center',
-                    backgroundColor: active ? 'var(--accent-blue)' : 'var(--bg-main)',
-                    color: active ? '#fff' : 'var(--text-secondary)',
-                    border: '1px solid ' + (active ? 'var(--accent-blue)' : 'var(--border-color)'),
+                    backgroundColor: active
+                      ? 'var(--accent-blue)'
+                      : 'var(--bg-main)',
+                    color: active
+                      ? '#fff'
+                      : 'var(--text-secondary)',
+                    border: '1px solid ' + (
+                      active
+                        ? 'var(--accent-blue)'
+                        : 'var(--border-color)'
+                    ),
                     padding: '8px 6px',
                     fontSize: '12px',
                   }}
                 >
-                  {m.id === 'system' ? <Monitor size={13} /> : m.id === 'dark' ? <Moon size={13} /> : m.id === 'light' ? <Sun size={13} /> : <TrendingUp size={13} />}
-                  {m.label}
+                  {mode.id === 'system'
+                    ? <Monitor size={13} />
+                    : mode.id === 'dark'
+                      ? <Moon size={13} />
+                      : mode.id === 'light'
+                        ? <Sun size={13} />
+                        : <TrendingUp size={13} />}
+                  {mode.label}
                 </button>
               );
             })}
           </div>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Saved on this device only. System follows your device's light/dark setting. P&L Based glows green in profit and red in loss, from the active account's total P&L.
+
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              display: 'block',
+              marginTop: '6px',
+            }}
+          >
+            Saved on this device only. System follows your device&apos;s
+            light/dark setting. P&amp;L Based glows green in profit and
+            red in loss, from the active account&apos;s total P&amp;L.
           </span>
         </div>
       </div>
 
-      <div style={{ borderTop: '1px solid var(--border-color)', margin: '32px 0', maxWidth: '520px' }} />
+      <div
+        style={{
+          borderTop: '1px solid var(--border-color)',
+          margin: '32px 0',
+          maxWidth: '520px',
+        }}
+      />
 
-      <p style={{ color: 'var(--text-secondary)', marginTop: 0, marginBottom: '24px' }}>
-        Settings for <strong style={{ color: 'var(--text-bright)' }}>{accountName}</strong> only. Other accounts keep their own settings.
+      <p
+        style={{
+          color: 'var(--text-secondary)',
+          marginTop: 0,
+          marginBottom: '24px',
+        }}
+      >
+        Settings for{' '}
+        <strong style={{ color: 'var(--text-bright)' }}>
+          {accountName}
+        </strong>{' '}
+        only. Other accounts keep their own settings.
       </p>
 
       <form onSubmit={handleSave} style={{ maxWidth: '520px' }}>
         <div className="ts-card" style={{ marginBottom: '16px' }}>
           <h3 style={sectionTitle}>Profile</h3>
+
           <label style={labelStyle}>Trader Name (Account)</label>
-          <input type="text" className="ts-input" value={settings.traderName || ''} onChange={(e) => handleChange('traderName', e.target.value)} />
-          <label style={{ ...labelStyle, marginTop: '14px' }}>Account Currency</label>
-          <select className="ts-input" value={settings.currency || 'USD'} onChange={(e) => handleChange('currency', e.target.value)}>
+          <input
+            type="text"
+            className="ts-input"
+            value={settings.traderName || ''}
+            onChange={(event) => handleChange(
+              'traderName',
+              event.target.value
+            )}
+          />
+
+          <label style={{ ...labelStyle, marginTop: '14px' }}>
+            Account Currency
+          </label>
+          <select
+            className="ts-input"
+            value={settings.currency || 'USD'}
+            onChange={(event) => handleChange(
+              'currency',
+              event.target.value
+            )}
+          >
             <option value="USD">USD ($)</option>
             <option value="EUR">EUR (€)</option>
             <option value="GBP">GBP (£)</option>
@@ -186,114 +417,457 @@ export default function Settings({
         </div>
 
         <div className="ts-card" style={{ marginBottom: '16px' }}>
-          <h3 style={sectionTitle}>Broker & Timezone</h3>
-          <label style={labelStyle}>Broker Server Timezone (UTC Offset)</label>
-          <select className="ts-input" value={settings.brokerUtcOffset ?? 2} onChange={(e) => handleChange('brokerUtcOffset', Number(e.target.value))}>
+          <h3 style={sectionTitle}>Broker &amp; Timezone</h3>
+
+          <label style={labelStyle}>
+            Broker Server Timezone (UTC Offset)
+          </label>
+          <select
+            className="ts-input"
+            value={settings.brokerUtcOffset ?? 2}
+            onChange={(event) => handleChange(
+              'brokerUtcOffset',
+              Number(event.target.value)
+            )}
+          >
             <option value={-5}>UTC-5 (EST - US East)</option>
             <option value={0}>UTC+0 (GMT / London)</option>
             <option value={1}>UTC+1 (WAT / CET - Nigeria / Europe)</option>
             <option value={2}>UTC+2 (EET - Standard MT5 Default)</option>
             <option value={3}>UTC+3 (EEST - Summer MT5 Offset)</option>
           </select>
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Used to convert broker times to your local time (Nigeria WAT) and for session analysis.
+
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              display: 'block',
+              marginTop: '6px',
+            }}
+          >
+            Used to convert broker times to your local time
+            (Nigeria WAT) and for session analysis.
           </span>
         </div>
 
         <div className="ts-card" style={{ marginBottom: '16px' }}>
           <h3 style={sectionTitle}>Risk Defaults</h3>
+
           <label style={labelStyle}>Starting Balance</label>
-          <input type="number" step="any" className="ts-input" value={settings.startingBalance ?? 10000} onChange={(e) => handleChange('startingBalance', Number(e.target.value))} />
-          <label style={{ ...labelStyle, marginTop: '14px' }}>Default Risk Per Trade (%)</label>
-          <input type="number" step="0.1" min="0.1" max="100" className="ts-input" value={settings.riskPerTrade ?? 1} onChange={(e) => handleChange('riskPerTrade', Number(e.target.value))} />
-          <label style={{ ...labelStyle, marginTop: '14px' }}>Maximum Daily Drawdown Limit (%)</label>
-          <input type="number" step="0.1" min="0" max="100" className="ts-input" value={settings.maxDailyDrawdownPercent ?? 3} onChange={(e) => handleChange('maxDailyDrawdownPercent', Number(e.target.value))} />
-          <label style={{ ...labelStyle, marginTop: '14px' }}>Maximum Drawdown Limit (%)</label>
-          <input type="number" step="0.1" min="0" max="100" className="ts-input" value={settings.maxDrawdownPercent ?? 10} onChange={(e) => handleChange('maxDrawdownPercent', Number(e.target.value))} />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
+          <input
+            type="number"
+            step="any"
+            className="ts-input"
+            value={settings.startingBalance ?? 10000}
+            onChange={(event) => handleChange(
+              'startingBalance',
+              Number(event.target.value)
+            )}
+          />
+
+          <label style={{ ...labelStyle, marginTop: '14px' }}>
+            Default Risk Per Trade (%)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0.1"
+            max="100"
+            className="ts-input"
+            value={settings.riskPerTrade ?? 1}
+            onChange={(event) => handleChange(
+              'riskPerTrade',
+              Number(event.target.value)
+            )}
+          />
+
+          <label style={{ ...labelStyle, marginTop: '14px' }}>
+            Maximum Daily Drawdown Limit (%)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            className="ts-input"
+            value={settings.maxDailyDrawdownPercent ?? 3}
+            onChange={(event) => handleChange(
+              'maxDailyDrawdownPercent',
+              Number(event.target.value)
+            )}
+          />
+
+          <label style={{ ...labelStyle, marginTop: '14px' }}>
+            Maximum Drawdown Limit (%)
+          </label>
+          <input
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            className="ts-input"
+            value={settings.maxDrawdownPercent ?? 10}
+            onChange={(event) => handleChange(
+              'maxDrawdownPercent',
+              Number(event.target.value)
+            )}
+          />
+
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              display: 'block',
+              marginTop: '6px',
+            }}
+          >
             Set either limit to 0% to hide its card on the Dashboard.
           </span>
         </div>
 
         <div className="ts-card" style={{ marginBottom: '16px' }}>
           <h3 style={sectionTitle}>Prop Firm Rules</h3>
+
           <label style={labelStyle}>Inactivity Limit (days)</label>
-          <input type="number" step="1" min="0" max="365" className="ts-input" value={settings.inactivityLimitDays ?? 30} onChange={(e) => handleChange('inactivityLimitDays', Number(e.target.value))} />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'block', marginTop: '6px' }}>
-            Most firms breach idle accounts after 30 days without a trade. The Dashboard guards this limit — set to 0 to hide the guard.
+          <input
+            type="number"
+            step="1"
+            min="0"
+            max="365"
+            className="ts-input"
+            value={settings.inactivityLimitDays ?? 30}
+            onChange={(event) => handleChange(
+              'inactivityLimitDays',
+              Number(event.target.value)
+            )}
+          />
+
+          <span
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              display: 'block',
+              marginTop: '6px',
+            }}
+          >
+            Most firms breach idle accounts after 30 days without
+            a trade. The Dashboard guards this limit—set to 0
+            to hide the guard.
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-          <button type="submit" className="ts-btn ts-btn-primary"><Save size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Save Settings</button>
-          {savedMsg && <span style={{ color: 'var(--color-win)', fontSize: '14px' }}>Saved for {accountName}!</span>}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            marginBottom: '28px',
+          }}
+        >
+          <button type="submit" className="ts-btn ts-btn-primary">
+            <Save size={14} /> Save Settings
+          </button>
+
+          {savedMsg && (
+            <span
+              style={{
+                color: 'var(--color-win)',
+                fontSize: '14px',
+              }}
+            >
+              Saved for {accountName}!
+            </span>
+          )}
         </div>
       </form>
 
-      <div className="ts-card" style={{ maxWidth: '520px', marginBottom: '16px' }}>
-        <h3 style={sectionTitle}>Backup & Restore</h3>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: 0 }}>
-          One JSON file holds <strong style={{ color: 'var(--text-bright)' }}>everything</strong>: all accounts, trades, playbooks, tickets and preferences. Export before big changes or a new device.
+      <div
+        className="ts-card"
+        style={{ maxWidth: '640px', marginBottom: '16px' }}
+      >
+        <h3 style={sectionTitle}>Backup &amp; Restore</h3>
+
+        <p style={helpStyle}>
+          Full JSON backups cover saved accounts and trades,
+          annotations, excursions, playbooks, period reviews,
+          tickets and preferences—not unsaved form drafts.
+          Journal CSV is not a full backup.
         </p>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button type="button" onClick={handleExportBackup} className="ts-btn ts-btn-primary">
-            <Download size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Export Backup
+
+        <p style={helpStyle}>
+          Restore affects this browser origin/profile across all
+          accounts, not just {accountName}. Close other tabs of
+          this app before restoring.
+        </p>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: '10px',
+            flexWrap: 'wrap',
+          }}
+        >
+          <button
+            type="button"
+            onClick={handleExportBackup}
+            disabled={restoreBlocked}
+            className="ts-btn ts-btn-primary"
+          >
+            <Download size={14} /> Export Backup
           </button>
-          <input
-            type="file"
-            accept=".json,application/json"
-            onChange={handleBackupFile}
-            id="backup-file-input"
-            style={{ display: 'none' }}
-          />
-          <label htmlFor="backup-file-input" className="ts-btn" style={{ cursor: 'pointer', display: 'inline-block' }}>
-            <Upload size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Import Backup
+
+          <label style={labelStyle}>
+            <Upload size={14} /> Select JSON backup
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={handleBackupFile}
+              disabled={restoreBlocked}
+              style={{
+                display: 'block',
+                marginTop: '6px',
+                maxWidth: '100%',
+              }}
+            />
           </label>
         </div>
+
+        {reading && (
+          <p role="status">Reading and validating backup…</p>
+        )}
+
         {backupOk && (
-          <p style={{ color: 'var(--color-win)', fontSize: '13px', marginBottom: 0 }}>
-            <CircleCheck size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{backupOk}
+          <p
+            role="status"
+            style={{
+              color: 'var(--color-win)',
+              fontSize: '13px',
+            }}
+          >
+            <CircleCheck size={14} /> {backupOk}
           </p>
         )}
+
         {backupErr && (
-          <p style={{ color: 'var(--color-loss)', fontSize: '13px', marginBottom: 0 }}>
-            <CircleX size={14} style={{ verticalAlign: '-2px', marginRight: '4px' }} />{backupErr}
+          <p
+            role="alert"
+            style={{
+              color: 'var(--color-loss)',
+              fontSize: '13px',
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            <CircleX size={14} /> {backupErr}
           </p>
         )}
-        {pending && (
-          <div style={{ marginTop: '14px', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px 14px', backgroundColor: 'var(--bg-main)' }}>
-            <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-bright)', marginBottom: '4px' }}>
+
+        {restoreBlocked && (
+          <p role="alert" style={{ color: 'var(--color-loss)' }}>
+            Restore controls are locked because rollback could
+            not be verified. Do not reload, retry, or edit data.
+            Keep the safety copy and report the error before
+            continuing.
+          </p>
+        )}
+
+        {pending && !restoreBlocked && (
+          <div
+            style={{
+              marginTop: '14px',
+              border: '1px solid var(--border-color)',
+              borderRadius: '8px',
+              padding: '14px',
+              backgroundColor: 'var(--bg-main)',
+            }}
+          >
+            <h4
+              style={{
+                marginTop: 0,
+                overflowWrap: 'anywhere',
+              }}
+            >
               {pending.fileName}
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
-              {pending.summary.accounts} accounts · {pending.summary.trades} trades · {pending.summary.playbooks} playbooks
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
-              Exported: {pending.summary.exportedAt ? new Date(pending.summary.exportedAt).toLocaleString() : 'unknown date'}
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--color-amber-text)', marginBottom: '12px' }}>
-              <TriangleAlert size={13} style={{ verticalAlign: '-2px', marginRight: '4px' }} />
-              Restoring replaces ALL data on this device. Your current data is auto-downloaded first as a safety copy.
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button type="button" onClick={cancelRestore} className="ts-btn ts-btn-ghost">Cancel</button>
-              <button type="button" onClick={confirmRestore} className="ts-btn ts-btn-danger">Restore This Backup</button>
+            </h4>
+
+            <p style={helpStyle}>
+              {pending.summary.accounts} accounts ·{' '}
+              {pending.summary.trades} trades ·{' '}
+              {pending.summary.playbooks} playbooks ·{' '}
+              {pending.summary.reviews} included period reviews
+            </p>
+
+            <p style={helpStyle}>
+              Exported:{' '}
+              {pending.summary.exportedAt &&
+              Number.isFinite(Date.parse(pending.summary.exportedAt))
+                ? new Date(
+                    pending.summary.exportedAt
+                  ).toLocaleString()
+                : 'Unknown date'}
+            </p>
+
+            <p style={helpStyle}>
+              <strong>Saved fields replaced:</strong>{' '}
+              {pending.summary.included.join(', ')}
+            </p>
+
+            <p style={helpStyle}>
+              <strong>Omitted fields left untouched:</strong>{' '}
+              {pending.summary.preserved.length
+                ? pending.summary.preserved.join(', ')
+                : 'None'}
+            </p>
+
+            <p style={helpStyle}>
+              An included empty list clears that list.
+              An omitted list stays unchanged. Accounts and trades
+              are replaced as a whole, not matched or merged.
+              Omitted reviews may refer to accounts not present
+              in this backup.
+            </p>
+
+            <p
+              style={{
+                ...helpStyle,
+                color: 'var(--color-amber-text)',
+              }}
+            >
+              <TriangleAlert size={14} /> Restore is not an atomic
+              browser transaction. Failed writes trigger a rollback
+              attempt and verification, not a success reload.
+            </p>
+
+            <button
+              type="button"
+              onClick={downloadSafetyCopy}
+              className="ts-btn ts-btn-primary"
+            >
+              1. Download pre-restore safety copy
+            </button>
+
+            <label
+              style={{
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'flex-start',
+                margin: '14px 0',
+                fontSize: '13px',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={safetyChecked}
+                disabled={!safetyData}
+                onChange={(event) => setSafetyChecked(
+                  event.target.checked
+                )}
+              />
+              I located the safety JSON file and checked that
+              it saved. I understand that included data will
+              be replaced.
+            </label>
+
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                type="button"
+                onClick={cancelRestore}
+                className="ts-btn ts-btn-ghost"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={confirmRestore}
+                disabled={!safetyData || !safetyChecked}
+                className="ts-btn ts-btn-danger"
+              >
+                2. Restore This Backup
+              </button>
             </div>
           </div>
         )}
       </div>
 
-      <div className="ts-card" style={{ maxWidth: '520px', border: '1px solid #7f1d1d' }}>
-        <h3 style={{ ...sectionTitle, color: 'var(--color-loss)' }}>Danger Zone</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <button type="button" onClick={resetCurrentAccountData} className="ts-btn ts-btn-ghost" style={{ justifyContent: 'flex-start' }}><Eraser size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Clear trades only (this account)</button>
-          <button type="button" onClick={resetCurrentAccountEverything} className="ts-btn ts-btn-danger" style={{ justifyContent: 'flex-start' }}><Recycle size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Reset this account (trades + settings)</button>
-          <button type="button" onClick={resetAllAppData} className="ts-btn ts-btn-danger" style={{ justifyContent: 'flex-start', backgroundColor: '#7f1d1d' }}><Bomb size={14} style={{ verticalAlign: '-2px', marginRight: '6px' }} />Wipe ALL app data (all accounts)</button>
+      <div
+        className="ts-card"
+        style={{
+          maxWidth: '520px',
+          border: '1px solid #7f1d1d',
+        }}
+      >
+        <h3 style={{ ...sectionTitle, color: 'var(--color-loss)' }}>
+          Danger Zone
+        </h3>
+
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+          }}
+        >
+          <button
+            type="button"
+            disabled={restoreBlocked}
+            onClick={resetCurrentAccountData}
+            className="ts-btn ts-btn-ghost"
+            style={{ justifyContent: 'flex-start' }}
+          >
+            <Eraser size={14} /> Clear trades only (this account)
+          </button>
+
+          <button
+            type="button"
+            disabled={restoreBlocked}
+            onClick={resetCurrentAccountEverything}
+            className="ts-btn ts-btn-danger"
+            style={{ justifyContent: 'flex-start' }}
+          >
+            <Recycle size={14} /> Reset this account
+            (trades + settings)
+          </button>
+
+          <button
+            type="button"
+            disabled={restoreBlocked}
+            onClick={resetAllAppData}
+            className="ts-btn ts-btn-danger"
+            style={{
+              justifyContent: 'flex-start',
+              backgroundColor: '#7f1d1d',
+            }}
+          >
+            <Bomb size={14} /> Wipe ALL app data (all accounts)
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-const sectionTitle = { marginTop: 0, marginBottom: '16px', fontSize: '16px', color: 'var(--text-bright)' };
-const labelStyle = { display: 'block', fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '6px' };
+const sectionTitle = {
+  marginTop: 0,
+  marginBottom: '16px',
+  fontSize: '16px',
+  color: 'var(--text-bright)',
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: '12px',
+  color: 'var(--text-secondary)',
+  marginBottom: '6px',
+};
+
+const helpStyle = {
+  fontSize: '12px',
+  color: 'var(--text-secondary)',
+  overflowWrap: 'anywhere',
+};
