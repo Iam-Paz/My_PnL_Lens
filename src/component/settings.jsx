@@ -1,10 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
 import {
-  SettingsIcon, Save, Eraser, Recycle, Bomb, Moon, Sun,
+  useState,
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
+
+import {
+  SettingsIcon, Eraser, Recycle, Bomb, Moon, Sun,
   TrendingUp, Monitor, Download, Upload, TriangleAlert,
   CircleCheck, CircleX,
 } from 'lucide-react';
+
 import { THEME_MODES } from '../utils/themeConfig.js';
+import { STORAGE_KEYS } from '../utils/storageKeys.js';
+
+import {
+  getSaveFailures,
+  subscribeSaveFailures,
+} from '../utils/persistence.js';
+
 import {
   buildBackup,
   backupSummary,
@@ -27,7 +41,18 @@ export default function Settings({
   themeMode = 'system',
   setThemeMode,
 }) {
-  const [savedMsg, setSavedMsg] = useState(false);
+  const failures = useSyncExternalStore(
+    subscribeSaveFailures,
+    getSaveFailures,
+    getSaveFailures
+  );
+
+  const persistenceBlocked = failures.length > 0;
+
+  const accountSaveFailed = failures.some(
+    (failure) => failure.key === STORAGE_KEYS.accounts
+  );
+
   const [nameEdit, setNameEdit] = useState({
     base: displayName,
     value: displayName,
@@ -47,13 +72,10 @@ export default function Settings({
   };
 
   const handleChange = (key, value) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const handleSave = (event) => {
-    event.preventDefault();
-    setSavedMsg(true);
-    setTimeout(() => setSavedMsg(false), 2000);
+    setSettings((previous) => ({
+      ...previous,
+      [key]: value,
+    }));
   };
 
   // Backups cover persisted data, not unsaved form drafts.
@@ -82,8 +104,19 @@ export default function Settings({
     setSafetyChecked(false);
   };
 
+  const requireSavedData = () => {
+    if (!getSaveFailures().length) return true;
+
+    setBackupOk('');
+    setBackupErr(
+      'Backup action blocked: some latest changes are not confirmed saved. Use the warning above to retry saving or download the partial unsaved recovery JSON. A recovery download does not enable restore; tracked saves must succeed first.'
+    );
+
+    return false;
+  };
+
   const handleExportBackup = () => {
-    if (restoreBlocked) return;
+    if (restoreBlocked || !requireSavedData()) return;
 
     clearBackupMsgs();
 
@@ -105,7 +138,7 @@ export default function Settings({
     const file = event.target.files?.[0];
     event.target.value = '';
 
-    if (!file || restoreBlocked) return;
+    if (!file || restoreBlocked || !requireSavedData()) return;
 
     const version = ++fileVersion.current;
 
@@ -148,7 +181,7 @@ export default function Settings({
   };
 
   const downloadSafetyCopy = () => {
-    if (!pending || restoreBlocked) return;
+    if (!pending || restoreBlocked || !requireSavedData()) return;
 
     clearBackupMsgs();
     resetSafety();
@@ -186,6 +219,8 @@ export default function Settings({
 
     clearBackupMsgs();
 
+    if (!requireSavedData()) return;
+
     try {
       if (JSON.stringify(buildBackup().data) !== safetyData) {
         resetSafety();
@@ -206,7 +241,7 @@ export default function Settings({
         `Restore "${pending.fileName}"?\n\nIncluded fields REPLACE saved values; trades are not merged.\n${summary.accounts} accounts, ${summary.trades} trades, ${summary.playbooks} playbooks, ${summary.reviews} included period reviews.\n\nOmitted fields left untouched: ${preserved}\n\nUse only this app tab during restore. Continue?`
       );
 
-      if (!approved) return;
+      if (!approved || !requireSavedData()) return;
 
       restoring.current = true;
 
@@ -354,9 +389,10 @@ export default function Settings({
               marginTop: '6px',
             }}
           >
-            Saved on this device only. System follows your device&apos;s
-            light/dark setting. P&amp;L Based glows green in profit and
-            red in loss, from the active account&apos;s total P&amp;L.
+            Saved on this device only. System follows your
+            device&apos;s light/dark setting. P&amp;L Based glows
+            green in profit and red in loss, from the active
+            account&apos;s total P&amp;L.
           </span>
         </div>
       </div>
@@ -383,7 +419,10 @@ export default function Settings({
         only. Other accounts keep their own settings.
       </p>
 
-      <form onSubmit={handleSave} style={{ maxWidth: '520px' }}>
+      <form
+        onSubmit={(event) => event.preventDefault()}
+        style={{ maxWidth: '520px' }}
+      >
         <div className="ts-card" style={{ marginBottom: '16px' }}>
           <h3 style={sectionTitle}>Profile</h3>
 
@@ -556,29 +595,23 @@ export default function Settings({
           </span>
         </div>
 
-        <div
+        <p
+          role="status"
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
+            fontSize: '13px',
+            color: accountSaveFailed
+              ? 'var(--color-loss)'
+              : 'var(--text-secondary)',
             marginBottom: '28px',
           }}
         >
-          <button type="submit" className="ts-btn ts-btn-primary">
-            <Save size={14} /> Save Settings
-          </button>
-
-          {savedMsg && (
-            <span
-              style={{
-                color: 'var(--color-win)',
-                fontSize: '14px',
-              }}
-            >
-              Saved for {accountName}!
-            </span>
-          )}
-        </div>
+          Account settings apply automatically.{' '}
+          {accountSaveFailed
+            ? 'The latest account changes are NOT confirmed saved. Use the warning above to retry or download recovery JSON.'
+            : 'No account-save failure is currently reported.'}
+          {' '}Display name and appearance are not yet covered
+          by this save tracker.
+        </p>
       </form>
 
       <div
@@ -610,7 +643,7 @@ export default function Settings({
           <button
             type="button"
             onClick={handleExportBackup}
-            disabled={restoreBlocked}
+            disabled={restoreBlocked || persistenceBlocked}
             className="ts-btn ts-btn-primary"
           >
             <Download size={14} /> Export Backup
@@ -622,7 +655,7 @@ export default function Settings({
               type="file"
               accept=".json,application/json"
               onChange={handleBackupFile}
-              disabled={restoreBlocked}
+              disabled={restoreBlocked || persistenceBlocked}
               style={{
                 display: 'block',
                 marginTop: '6px',
@@ -632,11 +665,26 @@ export default function Settings({
           </label>
         </div>
 
+        {persistenceBlocked && (
+          <p
+            role="alert"
+            style={{
+              color: 'var(--color-loss)',
+              fontSize: '13px',
+            }}
+          >
+            Full-backup export and restore are paused because some
+            latest data is unsaved or unverified. Keep this tab open.
+            Use the save warning above for retry and partial recovery
+            download.
+          </p>
+        )}
+
         {reading && (
           <p role="status">Reading and validating backup…</p>
         )}
 
-        {backupOk && (
+        {backupOk && !persistenceBlocked && (
           <p
             role="status"
             style={{
@@ -740,6 +788,7 @@ export default function Settings({
             <button
               type="button"
               onClick={downloadSafetyCopy}
+              disabled={persistenceBlocked}
               className="ts-btn ts-btn-primary"
             >
               1. Download pre-restore safety copy
@@ -757,7 +806,7 @@ export default function Settings({
               <input
                 type="checkbox"
                 checked={safetyChecked}
-                disabled={!safetyData}
+                disabled={!safetyData || persistenceBlocked}
                 onChange={(event) => setSafetyChecked(
                   event.target.checked
                 )}
@@ -785,7 +834,11 @@ export default function Settings({
               <button
                 type="button"
                 onClick={confirmRestore}
-                disabled={!safetyData || !safetyChecked}
+                disabled={
+                  !safetyData ||
+                  !safetyChecked ||
+                  persistenceBlocked
+                }
                 className="ts-btn ts-btn-danger"
               >
                 2. Restore This Backup
@@ -815,7 +868,7 @@ export default function Settings({
         >
           <button
             type="button"
-            disabled={restoreBlocked}
+            disabled={restoreBlocked || persistenceBlocked}
             onClick={resetCurrentAccountData}
             className="ts-btn ts-btn-ghost"
             style={{ justifyContent: 'flex-start' }}
@@ -825,7 +878,7 @@ export default function Settings({
 
           <button
             type="button"
-            disabled={restoreBlocked}
+            disabled={restoreBlocked || persistenceBlocked}
             onClick={resetCurrentAccountEverything}
             className="ts-btn ts-btn-danger"
             style={{ justifyContent: 'flex-start' }}
@@ -836,7 +889,7 @@ export default function Settings({
 
           <button
             type="button"
-            disabled={restoreBlocked}
+            disabled={restoreBlocked || persistenceBlocked}
             onClick={resetAllAppData}
             className="ts-btn ts-btn-danger"
             style={{
